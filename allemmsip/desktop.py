@@ -143,7 +143,7 @@ def _window(api: JsApi, dispatcher: EventDispatcher, settings: dict) -> int:
         title, str(index), js_api=api, width=1180, height=780, min_size=(900, 640),
         hidden=bool(settings.get("startMinimized")),
     )
-    api.window = window
+    api.attach_window(window)
     dispatcher.attach(window.evaluate_js)
 
     def on_loaded():

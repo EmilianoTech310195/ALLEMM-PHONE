@@ -96,7 +96,10 @@ class JsApi:
         self._settings = settings
         self._dispatcher = dispatcher
         self._launch_number = launch_number
-        self.window = None  # lo fija desktop.py al crear la ventana
+        # OJO: debe ser privado (guion bajo). pywebview publica hacia JavaScript
+        # todos los atributos públicos del API recorriéndolos de forma recursiva;
+        # la ventana nativa (.NET Form) tiene atributos cíclicos y lo bloquea.
+        self._window = None
         self._lock = threading.Lock()
         dispatcher.add_listener(self._on_engine_event)
 
@@ -106,8 +109,11 @@ class JsApi:
         if name == "incoming_call":
             self.bring_to_front()
 
+    def attach_window(self, window) -> None:
+        self._window = window
+
     def bring_to_front(self) -> None:
-        w = self.window
+        w = self._window
         if w is None:
             return
         try:

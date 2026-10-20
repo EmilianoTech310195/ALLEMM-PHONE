@@ -137,9 +137,10 @@ def test_incoming_call_brings_window_to_front(tmp_path, monkeypatch):
         def restore(self):
             self.restored.set()
 
-    api.window = W()
+    w = W()
+    api.attach_window(w)
     engine.listener("incoming_call", {"caller": "2001"})
-    assert api.window.restored.wait(3)
+    assert w.restored.wait(3)
     assert api.app_info()["engineAvailable"] is True
 
 
@@ -152,3 +153,15 @@ def test_register_with_server_from_login_saves_settings(tmp_path, monkeypatch):
     assert engine.calls[-1] == ("register", "2091", "pw")
     bad = api.sip_register("2091", "pw", ":")
     assert bad["ok"] is False and bad["cause"] == "BAD_SERVER"
+
+
+def test_api_has_no_public_non_callable_attributes(tmp_path, monkeypatch):
+    """pywebview recorre los atributos públicos del API de forma recursiva:
+    cualquier objeto público con referencias cíclicas (la ventana nativa)
+    bloquea la aplicación. Solo métodos públicos."""
+    api, engine, scripts = _api(tmp_path, monkeypatch)
+    api.attach_window(object())
+    for name in dir(api):
+        if name.startswith("_"):
+            continue
+        assert callable(getattr(api, name)), f"atributo público no invocable en JsApi: {name}"
