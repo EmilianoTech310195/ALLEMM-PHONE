@@ -1,0 +1,118 @@
+name: Compilar AllemmSIP.exe para Windows
+
+on:
+  push:
+    branches: ["**"]        # cada push deja el instalador como artefacto descargable en Actions
+    tags: ["v*"]            # una etiqueta v* además publica una Release
+    paths-ignore: ["README.md", ".github/workflows/tests.yml"]
+  workflow_dispatch:
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - uses: microsoft/setup-msbuild@v2
+
+      - name: Caché de PJSIP compilado
+        id: pjcache
+        uses: actions/cache@v4
+        with:
+          path: |
+            third_party/pjsua2/_pjsua2*.pyd
+            third_party/pjproject/lib
+          key: pjsip-2.15.1-py312-${{ hashFiles('tools/build-pjsip-windows.ps1', 'third_party/pjsua2/setup_msvc.py', 'third_party/pjsua2/pjsua2_wrap.cpp') }}
+
+      - name: Compilar PJSIP + pjsua2 (Visual Studio)
+        if: steps.pjcache.outputs.cache-hit != 'true'
+        shell: pwsh
+        run: .\tools\build-pjsip-windows.ps1
+
+      - name: Instalar dependencias
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[desktop,dev]"
+
+      - name: Pruebas (incluye llamadas SIP reales en 127.0.0.1)
+        shell: pwsh
+        run: python -m pytest -q
+
+      - name: Compilar con PyInstaller
+        run: pyinstaller allemmsip.spec --noconfirm
+
+      - name: Prueba de humo (motor sin ventana)
+        shell: pwsh
+        env:
+          ALLEMMSIP_DATA_DIR: ${{ github.workspace }}\smoke-data
+        run: |
+          $p = Start-Process -FilePath dist\AllemmSIP\AllemmSIP.exe -ArgumentList "--headless" -PassThru `
+                 -RedirectStandardOutput smoke-out.txt -RedirectStandardError smoke-err.txt
+          Start-Sleep -Seconds 12
+          $alive = -not $p.HasExited
+          Stop-Process -Id $p.Id -Force -ErrorAction SilentlyContinue
+          Write-Host "--- stdout ---"; Get-Content smoke-out.txt -ErrorAction SilentlyContinue
+          Write-Host "--- stderr ---"; Get-Content smoke-err.txt -ErrorAction SilentlyContinue
+          Write-Host "--- allemmsip.log ---"; Get-Content smoke-data\allemmsip.log -ErrorAction SilentlyContinue
+          if (-not $alive) { throw "AllemmSIP.exe --headless terminó solo (¿pjsua2 no cargó?)" }
+          if (-not (Select-String -Path smoke-data\allemmsip.log -Pattern "PJSIP .* iniciado" -Quiet)) { throw "El motor PJSIP no arrancó" }
+
+      - name: Prueba de humo (ventana)
+        shell: pwsh
+        env:
+          ALLEMMSIP_DATA_DIR: ${{ github.workspace }}\smoke-window
+        run: |
+          $p = Start-Process -FilePath dist\AllemmSIP\AllemmSIP.exe -PassThru
+          Start-Sleep -Seconds 20
+          $alive = -not $p.HasExited
+          Stop-Process -Id $p.Id -Force -ErrorAction SilentlyContinue
+          Write-Host "--- allemmsip.log ---"; Get-Content smoke-window\allemmsip.log -ErrorAction SilentlyContinue
+          if (-not $alive) { throw "La aplicación con ventana se cerró sola (¿pywebview/WebView2?)" }
+          if (-not (Select-String -Path smoke-window\allemmsip.log -Pattern "Interfaz cargada" -Quiet)) { throw "La interfaz no cargó" }
+
+      - name: Versión
+        shell: pwsh
+        run: |
+          $v = "${{ github.ref_name }}"
+          if ($v -notmatch '^v\d') { $v = "1.0.0-dev" } else { $v = $v.TrimStart('v') }
+          "APP_VERSION=$v" >> $env:GITHUB_ENV
+          Write-Host "Versión: $v"
+
+      - name: Crear instalador (Inno Setup)
+        shell: pwsh
+        run: |
+          Copy-Item README.md dist\AllemmSIP\LEEME.md
+          Invoke-WebRequest -Uri "https://go.microsoft.com/fwlink/p/?LinkId=2124703" -OutFile MicrosoftEdgeWebView2Setup.exe
+          $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
+          if (-not (Test-Path $iscc)) { choco install innosetup --no-progress -y; $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe" }
+          & $iscc installer\AllemmSIP.iss
+          Get-ChildItem installer-out
+
+      - name: Empaquetar versión portable
+        shell: pwsh
+        run: Compress-Archive -Path dist\AllemmSIP\* -DestinationPath AllemmSIP-portable.zip
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: AllemmSIP-Setup
+          path: installer-out/AllemmSIP-Setup.exe
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: AllemmSIP-portable
+          path: AllemmSIP-portable.zip
+
+      - name: Publicar release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            installer-out/AllemmSIP-Setup.exe
+            AllemmSIP-portable.zip
+          generate_release_notes: true

@@ -1,0 +1,24 @@
+__pycache__/
+*.pyc
+.venv/
+venv/
+build/
+dist/
+installer-out/
+*.spec.bak
+*.egg-info/
+.pytest_cache/
+
+# Salida de la compilación de PJSIP (se genera con tools/build-pjsip-windows.ps1)
+third_party/pjproject/
+third_party/pjsua2/_pjsua2*.pyd
+third_party/pjsua2/build/
+third_party/pjsua2/*.lib
+third_party/pjsua2/*.exp
+
+# Descargas del build
+MicrosoftEdgeWebView2Setup.exe
+
+# Datos locales
+settings.json
+*.log

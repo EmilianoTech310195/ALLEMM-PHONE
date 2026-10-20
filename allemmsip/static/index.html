@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Aplicación de escritorio (pywebview + PJSIP). Todo se sirve en local:
+         no hay CDNs, ni PWA, ni WebSocket. -->
+    <meta name="description" content="ALLEMM SIP - Softphone de escritorio">
+    <meta name="theme-color" content="#1e4d8c">
+    <title data-brand="appName">Corporativo de Viajes UVAC</title>
+    <link rel="stylesheet" href="vendor/tabler/tabler-icons.min.css">
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="icon" type="image/jpeg" href="img/logo_uvac.jpg">
+</head>
+<body>
+
+    <!-- Pantalla de Login (sin cambios funcionales) -->
+    <div id="loginScreen" class="login-screen">
+        <div class="login-box">
+            <img src="img/logo_uvac.jpg" alt="UVAC" class="login-logo">
+            <h2 data-brand="appName">Corporativo de Viajes UVAC</h2>
+            <p class="login-subtitle">Softphone de escritorio</p>
+
+            <div class="login-form">
+                <label for="extension">Extensión</label>
+                <input type="text" id="extension" placeholder="Ej. 1001" autocomplete="username">
+
+                <label for="password">Contraseña SIP</label>
+                <div class="password-wrapper">
+                    <input type="password" id="password" placeholder="••••••••" autocomplete="current-password">
+                    <button type="button" id="togglePassword" class="toggle-password" title="Mostrar/ocultar contraseña">👁️</button>
+                </div>
+
+                <label class="checkbox-label">
+                    <input type="checkbox" id="rememberMe">
+                    <span>Recordar credenciales</span>
+                </label>
+
+                <button id="loginBtn" class="btn-primary">Conectar</button>
+
+                <div id="loginStatus" class="login-status"></div>
+            </div>
+
+            <div class="login-footer"><span data-brand="footerText">Desarrollado por UVAC Tech</span> · <a href="#" id="settingsBtn" class="settings-link" title="Servidor, audio, DTMF"><i class="ti ti-settings"></i> Ajustes</a></div>
+        </div>
+    </div>
+
+    <!-- App Principal (oculta hasta login) -->
+    <div id="appScreen" class="app-screen hidden">
+
+        <div class="app">
+
+            <!-- ============ SIDEBAR ============ -->
+            <aside class="sidebar">
+                <div class="sidebar-logo">
+                    <img src="img/logo_uvac.jpg" alt="UVAC"
+                         onerror="this.outerHTML='<span class=\'sidebar-logo-fallback\'>UVAC</span>';">
+                </div>
+
+                <button class="nav-btn active" data-tab="dialer" aria-label="Marcador" title="Marcador">
+                    <i class="ti ti-grid-dots"></i>
+                </button>
+                <button class="nav-btn" data-tab="history" aria-label="Historial" title="Historial">
+                    <i class="ti ti-history"></i>
+                </button>
+
+                <div class="sidebar-spacer"></div>
+
+                <span id="healthIndicator" class="sip-status-dot health-indicator" title="Estado del PBX"></span>
+                <button id="settingsBtnApp" class="sidebar-logout" title="Ajustes" aria-label="Ajustes">
+                    <i class="ti ti-settings"></i>
+                </button>
+                <button id="logoutBtn" class="sidebar-logout" title="Cerrar sesión" aria-label="Cerrar sesión">
+                    <i class="ti ti-logout"></i>
+                </button>
+            </aside>
+
+            <!-- ============ MAIN AREA ============ -->
+            <main class="main">
+
+                <!-- Header -->
+                <div class="header">
+                    <div class="header-brand">
+                        <div class="header-text">
+                            <div class="header-title" data-brand="appName">Corporativo de Viajes UVAC</div>
+                            <div class="header-subtitle"><span id="extensionLabel">Ext. --</span></div>
+                        </div>
+                    </div>
+                    <span class="status-pill">
+                        <span class="status-pill-dot"></span>
+                        <span id="statusLabel">Listo</span>
+                    </span>
+                </div>
+
+                <!-- Banner para activar notificaciones (solo visible si no hay permiso) -->
+                <div id="notifBanner" class="notif-banner hidden">
+                    <div class="notif-banner-text">
+                        <i class="ti ti-bell-ringing"></i>
+                        <span>Activa las notificaciones para no perderte llamadas</span>
+                    </div>
+                    <button id="notifEnableBtn" class="notif-banner-btn">Activar</button>
+                </div>
+
+                <!-- Callbar (info de llamada activa) -->
+                <div class="callbar" id="callbar">
+                    <div class="callbar-info">
+                        <div class="avatar" id="avatar">--</div>
+                        <div class="callbar-text">
+                            <div class="callbar-name" id="callNumber">Sin llamada activa</div>
+                            <div class="callbar-meta" id="callStatus">Marca un número para iniciar</div>
+                        </div>
+                    </div>
+                    <div class="timer" id="callTimer">00:00</div>
+                </div>
+
+                <!-- Panel de llamada activa (mantenemos compatibilidad con app.js) -->
+                <div id="activeCallPanel" class="active-call-overlay hidden"></div>
+
+                <!-- Tip móvil -->
+                <div id="mobileCallTip" class="mobile-call-tip mobile-only hidden">
+                    💡 Mantén el navegador abierto durante la llamada
+                </div>
+
+                <!-- Dialer / Tabs -->
+                <div class="dialer" id="dialerView">
+                    <!-- Display del número -->
+                    <div class="number-row">
+                        <input type="text" class="number-input" id="numberDisplay" placeholder="Número o extensión" autocomplete="off">
+                        <button class="back-btn" id="clearBtn" aria-label="Borrar" title="Borrar">
+                            <i class="ti ti-backspace"></i>
+                        </button>
+                    </div>
+
+                    <!-- Dialpad -->
+                    <div class="keypad dialpad" id="keypad">
+                        <button class="dial-key" data-key="1"><span class="num">1</span><span class="letters"></span></button>
+                        <button class="dial-key" data-key="2"><span class="num">2</span><span class="letters">ABC</span></button>
+                        <button class="dial-key" data-key="3"><span class="num">3</span><span class="letters">DEF</span></button>
+                        <button class="dial-key" data-key="4"><span class="num">4</span><span class="letters">GHI</span></button>
+                        <button class="dial-key" data-key="5"><span class="num">5</span><span class="letters">JKL</span></button>
+                        <button class="dial-key" data-key="6"><span class="num">6</span><span class="letters">MNO</span></button>
+                        <button class="dial-key" data-key="7"><span class="num">7</span><span class="letters">PQRS</span></button>
+                        <button class="dial-key" data-key="8"><span class="num">8</span><span class="letters">TUV</span></button>
+                        <button class="dial-key" data-key="9"><span class="num">9</span><span class="letters">WXYZ</span></button>
+                        <button class="dial-key" data-key="*"><span class="num">*</span></button>
+                        <button class="dial-key" data-key="0"><span class="num">0</span><span class="letters">+</span></button>
+                        <button class="dial-key" data-key="#"><span class="num">#</span></button>
+                    </div>
+
+                    <!-- Acciones de llamada (los IDs deben coincidir con app.js) -->
+                    <div class="actions">
+                        <button class="ctrl" id="muteBtn" aria-label="Silenciar" title="Silenciar">
+                            <i class="ti ti-microphone"></i>
+                        </button>
+                        <button class="ctrl ctrl-speaker mobile-only" id="speakerBtn" aria-label="Altavoz" title="Altavoz">
+                            <i class="ti ti-volume"></i>
+                        </button>
+                        <button class="answer-btn hidden" id="answerBtn" aria-label="Contestar" title="Contestar">
+                            <i class="ti ti-phone"></i>
+                        </button>
+                        <button class="call-btn" id="callBtn" aria-label="Llamar" title="Llamar">
+                            <i class="ti ti-phone"></i>
+                        </button>
+                        <button class="ctrl ctrl-hangup hidden" id="hangupBtn" aria-label="Colgar" title="Colgar">
+                            <i class="ti ti-phone-off"></i>
+                        </button>
+                        <button class="ctrl" id="transferBtn" aria-label="Transferir" title="Transferir">
+                            <i class="ti ti-arrows-transfer-up"></i>
+                        </button>
+                        <!-- Modo ventana flotante: solo escritorio + navegador compatible.
+                             Se muestra desde app.js solo durante una llamada. -->
+                        <button class="ctrl hidden" id="floatBtn" aria-label="Ventana flotante" title="Ventana flotante (moverla por la pantalla)">
+                            <i class="ti ti-picture-in-picture-top"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Vista de Historial (oculta por defecto) -->
+                <div class="history-view hidden" id="historyView">
+                    <div class="history-view-header">
+                        <i class="ti ti-history"></i>
+                        <span>Historial de llamadas</span>
+                        <button id="clearHistoryBtn" class="history-clear-btn" title="Borrar historial">
+                            <i class="ti ti-trash"></i>
+                        </button>
+                    </div>
+                    <div id="historyListView" class="history-list-view">
+                        <div class="history-empty">Sin llamadas recientes</div>
+                    </div>
+                </div>
+
+                <!-- Footer -->
+                <div class="footer">
+                    <span class="brand">UVAC Tech</span>
+                    <span class="version">· ALLEMM SIP · escritorio</span>
+                </div>
+            </main>
+
+            <!-- ============ PANEL DE NOTAS ============ -->
+            <aside class="notes">
+                <div class="notes-header">
+                    <i class="ti ti-notes"></i>
+                    <span>Notas de la llamada</span>
+                </div>
+
+                <div class="notes-body">
+                    <textarea id="noteText" class="note-textarea" placeholder="Escribe una anotación sobre esta llamada..."></textarea>
+                    <button id="saveNote" class="note-save-btn">
+                        <i class="ti ti-device-floppy"></i>
+                        <span>Guardar nota</span>
+                    </button>
+
+                    <div class="notes-list-header">
+                        <span>Notas guardadas</span>
+                        <button id="clearNotesBtn" class="notes-clear-btn" title="Borrar todas las notas">
+                            <i class="ti ti-trash"></i>
+                        </button>
+                    </div>
+                    <div id="notesList" class="notes-list">
+                        <div class="notes-empty">Sin notas guardadas</div>
+                    </div>
+                </div>
+
+                <!-- historyList oculto para mantener compatibilidad con app.js -->
+                <div id="historyList" class="history-list hidden">
+                    <div class="history-empty">Sin llamadas recientes</div>
+                </div>
+            </aside>
+
+        </div>
+    </div>
+
+    <!-- ============ MODALES (mantenidos igual) ============ -->
+
+    <!-- Modal de ajustes (escritorio): servidor SIP, transporte, audio, DTMF -->
+    <div id="settingsModal" class="modal hidden">
+        <div class="modal-content settings-modal-content">
+            <h3><i class="ti ti-settings"></i> Ajustes</h3>
+            <div class="settings-grid">
+                <label for="setServer">Servidor SIP (PBX)</label>
+                <input type="text" id="setServer" placeholder="pbx.midominio.com" autocomplete="off">
+
+                <label for="setPort">Puerto</label>
+                <input type="number" id="setPort" min="1" max="65535" placeholder="5060">
+
+                <label for="setTransport">Transporte</label>
+                <select id="setTransport">
+                    <option value="udp">UDP (recomendado, como MicroSIP)</option>
+                    <option value="tcp">TCP</option>
+                    <option value="tls">TLS (cifrado)</option>
+                </select>
+
+                <label for="setMic">Micrófono</label>
+                <select id="setMic"><option value="">Predeterminado de Windows</option></select>
+
+                <label for="setSpeaker">Altavoz / audífonos</label>
+                <select id="setSpeaker"><option value="">Predeterminado de Windows</option></select>
+
+                <label for="setDtmf">Tonos DTMF</label>
+                <select id="setDtmf">
+                    <option value="INFO">SIP INFO (más confiable en PBX en la nube)</option>
+                    <option value="RFC2833">RFC 2833 (en el audio)</option>
+                </select>
+
+                <label for="setSrtp">Cifrado de audio (SRTP)</label>
+                <select id="setSrtp">
+                    <option value="optional">Si el PBX lo ofrece</option>
+                    <option value="mandatory">Obligatorio</option>
+                    <option value="off">Desactivado</option>
+                </select>
+
+                <label for="setExpires">Registro cada (seg)</label>
+                <input type="number" id="setExpires" min="60" max="3600" placeholder="600">
+
+                <label for="setStun">STUN (detrás de NAT)</label>
+                <label class="checkbox-label"><input type="checkbox" id="setStun"> <span>Usar servidores STUN de Google</span></label>
+
+                <label for="setMonitorUrl">Panel de monitoreo (URL)</label>
+                <input type="text" id="setMonitorUrl" placeholder="https://.../monitor/collector.php (vacío = apagado)" autocomplete="off">
+
+                <label for="setMonitorToken">Token del panel</label>
+                <input type="password" id="setMonitorToken" autocomplete="off">
+
+                <label for="setDebug">Diagnóstico</label>
+                <label class="checkbox-label"><input type="checkbox" id="setDebug"> <span>Logs detallados (soporte)</span></label>
+            </div>
+            <div id="settingsStatus" class="login-status"></div>
+            <div class="modal-actions">
+                <button id="settingsLogBtn" class="btn-secondary" title="Abrir carpeta de logs"><i class="ti ti-folder"></i> Logs</button>
+                <button id="settingsCancelBtn" class="btn-secondary">Cancelar</button>
+                <button id="settingsSaveBtn" class="btn-primary">Guardar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de transferencia -->
+    <div id="transferModal" class="modal hidden">
+        <div class="modal-content">
+            <h3>Transferir llamada</h3>
+            <input type="text" id="transferNumber" class="number-display" placeholder="Número de extensión">
+            <div class="dialpad mini-dialpad">
+                <button class="dial-key transfer-key" data-key="1">1</button>
+                <button class="dial-key transfer-key" data-key="2">2</button>
+                <button class="dial-key transfer-key" data-key="3">3</button>
+                <button class="dial-key transfer-key" data-key="4">4</button>
+                <button class="dial-key transfer-key" data-key="5">5</button>
+                <button class="dial-key transfer-key" data-key="6">6</button>
+                <button class="dial-key transfer-key" data-key="7">7</button>
+                <button class="dial-key transfer-key" data-key="8">8</button>
+                <button class="dial-key transfer-key" data-key="9">9</button>
+                <button class="dial-key transfer-key" data-key="*">*</button>
+                <button class="dial-key transfer-key" data-key="0">0</button>
+                <button class="dial-key transfer-key" data-key="#">#</button>
+            </div>
+            <div class="modal-actions">
+                <button id="cancelTransferBtn" class="btn-secondary">Cancelar</button>
+                <button id="confirmTransferBtn" class="btn-primary">Transferir</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de alerta -->
+    <div id="alertModal" class="modal hidden">
+        <div class="modal-content alert-modal-content">
+            <div class="alert-icon" id="alertIcon">⚠️</div>
+            <h3 id="alertTitle">Error</h3>
+            <p id="alertMessage">Mensaje de error</p>
+            <ul id="alertCauses" class="alert-causes hidden"></ul>
+            <div id="alertRetryInfo" class="alert-retry-info hidden">
+                <span class="spinner"></span>
+                <span>Reintentando en <span id="alertRetryCountdown">5</span>s...</span>
+            </div>
+            <div class="modal-actions">
+                <button id="alertRetryBtn" class="btn-primary">Reintentar ahora</button>
+                <button id="alertCloseBtn" class="btn-secondary">Cerrar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Audio elements -->
+    <audio id="remoteAudio" autoplay></audio>
+    <audio id="ringtone" loop>
+        <source src="sounds/ringtone.mp3" type="audio/mpeg">
+    </audio>
+    <audio id="ringback" loop>
+        <source src="sounds/ringback.mp3" type="audio/mpeg">
+    </audio>
+
+    <!-- Scripts (orden importante). sip.js es el puente al motor PJSIP en Python. -->
+    <script src="js/config.js"></script>
+    <script src="js/alerts.js"></script>
+    <script src="js/ringback.js"></script>
+    <script src="js/caller-id.js"></script>
+    <script src="js/sip.js"></script>
+    <script src="js/reporter.js"></script>
+    <script src="js/settings.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>

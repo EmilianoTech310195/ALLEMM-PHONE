@@ -1,0 +1,143 @@
+"""El puente JS ↔ motor, con un motor simulado (no necesita pjsua2)."""
+
+import json
+import threading
+import time
+
+from allemmsip import config
+from allemmsip.bridge import EventDispatcher, JsApi
+from allemmsip.engine import EngineUnavailable
+
+
+class FakeEngine:
+    def __init__(self, listener):
+        self.listener = listener
+        self.settings = None
+        self.calls = []
+        self.registered = False
+
+    @staticmethod
+    def available():
+        return True
+
+    @staticmethod
+    def import_error():
+        return ""
+
+    def register(self, ext, password):
+        self.calls.append(("register", ext, password))
+        self.listener("registered", {})
+
+    def unregister(self):
+        self.calls.append(("unregister",))
+
+    def reconnect(self):
+        self.calls.append(("reconnect",))
+
+    def network_changed(self):
+        self.calls.append(("network",))
+
+    def make_call(self, number):
+        self.calls.append(("call", number))
+        return True
+
+    def answer(self):
+        return True
+
+    def hangup(self):
+        return True
+
+    def toggle_mute(self):
+        return True
+
+    def hold(self, on):
+        return on
+
+    def transfer(self, number):
+        raise EngineUnavailable("apagado")
+
+    def send_dtmf(self, tone):
+        return tone == "1"
+
+    def list_audio_devices(self):
+        return [{"id": 0, "name": "Mic", "driver": "WASAPI", "inputCount": 1, "outputCount": 0}]
+
+    def set_audio_devices(self, cap, play):
+        self.calls.append(("devices", cap, play))
+
+    def snapshot(self):
+        return {"registered": self.registered, "inCall": False}
+
+
+def _api(tmp_path, monkeypatch, launch=""):
+    monkeypatch.setenv("ALLEMMSIP_DATA_DIR", str(tmp_path))
+    dispatcher = EventDispatcher()
+    scripts = []
+    dispatcher.attach(scripts.append)
+    engine = FakeEngine(dispatcher)
+    api = JsApi(engine, config.load_settings(), dispatcher, launch_number=launch)
+    return api, engine, scripts
+
+
+def _wait(cond, timeout=3):
+    end = time.time() + timeout
+    while time.time() < end:
+        if cond():
+            return True
+        time.sleep(0.02)
+    return cond()
+
+
+def test_register_forwards_event_to_window(tmp_path, monkeypatch):
+    api, engine, scripts = _api(tmp_path, monkeypatch)
+    assert api.sip_register("2042", "pw") == {"ok": True}
+    assert engine.calls[0] == ("register", "2042", "pw")
+    assert _wait(lambda: scripts)
+    assert "AllemmBridge.dispatch" in scripts[0]
+    payload = json.loads(scripts[0].split("dispatch(", 1)[1].rsplit(")", 1)[0])
+    assert payload == {"name": "registered", "data": {}}
+
+
+def test_engine_errors_become_events_not_exceptions(tmp_path, monkeypatch):
+    api, engine, scripts = _api(tmp_path, monkeypatch)
+    assert api.sip_transfer("2001") is False
+    assert _wait(lambda: any("engine_error" in s for s in scripts))
+    assert api.sip_dtmf("1") is True
+    assert api.sip_dtmf("5") is False
+    assert api.sip_call("tel:2042") is True
+    assert engine.calls[-1] == ("call", "tel:2042")
+
+
+def test_settings_save_updates_engine(tmp_path, monkeypatch):
+    api, engine, scripts = _api(tmp_path, monkeypatch)
+    out = api.save_settings({"sipServer": "pbx.example.com", "transport": "tcp", "captureDevice": "Mic"})
+    assert out["sipServer"] == "pbx.example.com"
+    assert engine.settings.transport == "tcp"
+    assert ("devices", "Mic", "") in engine.calls
+    assert api.get_settings()["transport"] == "tcp"
+    assert api.list_audio_devices()[0]["name"] == "Mic"
+
+
+def test_launch_number_is_consumed_once_and_pushed(tmp_path, monkeypatch):
+    api, engine, scripts = _api(tmp_path, monkeypatch, launch="2042")
+    assert api.get_launch_number() == "2042"
+    assert api.get_launch_number() == ""
+    api.push_launch_number("2001")
+    assert _wait(lambda: any("launch_number" in s and "2001" in s for s in scripts))
+
+
+def test_incoming_call_brings_window_to_front(tmp_path, monkeypatch):
+    api, engine, scripts = _api(tmp_path, monkeypatch)
+
+    class W:
+        def __init__(self):
+            self.restored = threading.Event()
+            self.on_top = False
+
+        def restore(self):
+            self.restored.set()
+
+    api.window = W()
+    engine.listener("incoming_call", {"caller": "2001"})
+    assert api.window.restored.wait(3)
+    assert api.app_info()["engineAvailable"] is True
