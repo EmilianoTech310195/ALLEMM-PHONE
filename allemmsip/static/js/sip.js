@@ -354,6 +354,12 @@ AllemmBridge.on('call_failed', function (d) {
     if (UvacSIP.onCallFailed) UvacSIP.onCallFailed(cause);
 });
 
+AllemmBridge.on('transport_fallback', function (d) {
+    uvacLog('⚠️ ' + String(d.from).toUpperCase() + ' sin respuesta; probando ' + String(d.to).toUpperCase());
+    UvacAlerts.setHealth('warning');
+    try { if (typeof UvacApp !== 'undefined') UvacApp._showLoginStatus('Sin respuesta por UDP, probando TCP...', 'success'); } catch (e) {}
+});
+
 AllemmBridge.on('transfer_status', function (d) {
     uvacLog('Transferencia:', d.code, d.reason, d.final ? '(final)' : '');
 });

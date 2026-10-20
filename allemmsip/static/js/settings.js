@@ -125,6 +125,7 @@ const AllemmSettings = {
         document.getElementById('setDtmf').value = s.dtmfMode || 'INFO';
         document.getElementById('setSrtp').value = s.srtp || 'optional';
         document.getElementById('setStun').checked = s.stunEnabled !== false;
+        document.getElementById('setFallback').checked = s.autoTransportFallback !== false;
         document.getElementById('setExpires').value = s.registerExpires || 600;
         document.getElementById('setMonitorUrl').value = s.monitorUrl || '';
         document.getElementById('setMonitorToken').value = s.monitorToken || '';
@@ -161,6 +162,7 @@ const AllemmSettings = {
             dtmfMode: document.getElementById('setDtmf').value,
             srtp: document.getElementById('setSrtp').value,
             stunEnabled: document.getElementById('setStun').checked,
+            autoTransportFallback: document.getElementById('setFallback').checked,
             registerExpires: parseInt(document.getElementById('setExpires').value, 10) || 600,
             captureDevice: document.getElementById('setMic').value,
             playbackDevice: document.getElementById('setSpeaker').value,

@@ -108,6 +108,13 @@ class JsApi:
     def _on_engine_event(self, name: str, data: dict) -> None:
         if name == "incoming_call":
             self.bring_to_front()
+        elif name == "transport_fallback" and data.get("to"):
+            # Guardar el transporte que sí funcionó para los próximos arranques.
+            try:
+                with self._lock:
+                    self._settings = config.save_settings({"transport": data["to"]})
+            except Exception:  # noqa: BLE001
+                log.exception("No se pudo guardar el transporte")
 
     def attach_window(self, window) -> None:
         self._window = window

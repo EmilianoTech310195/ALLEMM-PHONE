@@ -144,3 +144,37 @@ def test_single_instance_handoff(tmp_path):
 ])
 def test_parse_server(text, expected):
     assert config.parse_server(text) == expected
+
+
+def test_udp_timeout_falls_back_to_tcp_once():
+    """Sin respuesta por UDP → un reintento por TCP; si TCP tampoco, falla."""
+    from allemmsip.engine import EngineSettings, SipEngine
+
+    eng = SipEngine(EngineSettings(sip_server="pbx.example.com", transport="udp", register_timeout=1))
+    events, posted = [], []
+    eng._emit = lambda name, data=None: events.append((name, data or {}))
+    eng._post = lambda fn: posted.append(fn)
+    eng._transports = {"udp": True, "tcp": True, "tls": False}
+
+    eng._on_register_timeout()
+    assert eng.settings.transport == "tcp"
+    assert ("transport_fallback", {"from": "udp", "to": "tcp"}) in events
+    assert posted and posted[0] == eng._register_job
+    assert not any(n == "registration_failed" for n, _ in events)
+
+    eng._on_register_timeout()          # TCP tampoco respondió
+    assert any(n == "registration_failed" for n, _ in events)
+    assert len(posted) == 1             # no vuelve a intentar en bucle
+
+
+def test_no_fallback_when_disabled_or_not_udp():
+    from allemmsip.engine import EngineSettings, SipEngine
+
+    for st in (EngineSettings(transport="udp", auto_fallback_tcp=False), EngineSettings(transport="tcp")):
+        eng = SipEngine(st)
+        events = []
+        eng._emit = lambda name, data=None, ev=events: ev.append(name)
+        eng._post = lambda fn: (_ for _ in ()).throw(AssertionError("no debía reintentar"))
+        eng._transports = {"udp": True, "tcp": True}
+        eng._on_register_timeout()
+        assert "registration_failed" in events

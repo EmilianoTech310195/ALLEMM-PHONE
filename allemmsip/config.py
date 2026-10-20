@@ -32,6 +32,7 @@ DEFAULTS: dict[str, Any] = {
     "sipServer": "pbx18879.pbxhosting.com.mx",   # mismo valor que el .exe anterior y el manual de MicroSIP
     "sipPort": 49999,
     "transport": "udp",             # udp | tcp | tls
+    "autoTransportFallback": True,  # si UDP no responde en registerTimeout, pasar a TCP
     "registerExpires": 300,         # MicroSIP: "Refresco de registro" 300
     "registerTimeout": 15,
     "retryDelay": 5,
@@ -200,6 +201,7 @@ def engine_settings(s: dict) -> EngineSettings:
         # Con "Diagnóstico" activado el log trae el intercambio SIP completo (nivel 5)
         log_level=5 if s.get("debug") else int(s.get("pjsipLogLevel", 3)),
         session_timers=bool(s.get("sessionTimers", False)),
+        auto_fallback_tcp=bool(s.get("autoTransportFallback", True)),
     )
 
 

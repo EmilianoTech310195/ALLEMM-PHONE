@@ -77,6 +77,7 @@ class EngineSettings:
     log_level: int = 3
     local_port: int = 0               # 0 = puerto local aleatorio
     session_timers: bool = False
+    auto_fallback_tcp: bool = True    # si UDP no responde, reintentar por TCP
 
 
 # --------------------------------------------------------------------------
@@ -366,13 +367,24 @@ class SipEngine:
         cfg.medConfig.sndAutoCloseTime = 1
         self._ep.libInit(cfg)
 
-        tcfg = pj.TransportConfig()
-        tcfg.port = int(s.local_port)
-        kind = {"udp": pj.PJSIP_TRANSPORT_UDP, "tcp": pj.PJSIP_TRANSPORT_TCP,
-                "tls": pj.PJSIP_TRANSPORT_TLS}[s.transport.lower()]
-        if kind == pj.PJSIP_TRANSPORT_TLS:
-            tcfg.tlsConfig.verifyServer = False
-        self._ep.transportCreate(kind, tcfg)
+        # Se crean los tres transportes; el que se usa lo decide la URI del
+        # registrador (";transport=tcp"). Así se puede cambiar de UDP a TCP
+        # sin reiniciar la librería (redes que bloquean UDP).
+        self._transports: dict[str, bool] = {}
+        for name, kind in (("udp", pj.PJSIP_TRANSPORT_UDP), ("tcp", pj.PJSIP_TRANSPORT_TCP),
+                           ("tls", pj.PJSIP_TRANSPORT_TLS)):
+            tcfg = pj.TransportConfig()
+            tcfg.port = int(s.local_port)
+            if kind == pj.PJSIP_TRANSPORT_TLS:
+                tcfg.tlsConfig.verifyServer = False
+            try:
+                self._ep.transportCreate(kind, tcfg)
+                self._transports[name] = True
+            except Exception as exc:  # noqa: BLE001 - p. ej. TLS sin SSL compilado
+                self._transports[name] = False
+                log.warning("Transporte %s no disponible: %s", name.upper(), exc)
+        if not self._transports.get(s.transport.lower()):
+            raise RuntimeError(f"El transporte {s.transport.upper()} no está disponible")
         self._ep.libStart()
         self._apply_codecs()
         self._apply_audio_devices()
@@ -474,6 +486,7 @@ class SipEngine:
         """Equivalente a ``UvacSIP.init(ext, pass)``."""
         self.extension = str(extension).strip()
         self._password = password
+        self._fallback_done = False
         self._run(self._register_job)
 
     def _register_job(self) -> None:
@@ -536,15 +549,32 @@ class SipEngine:
     def _arm_register_timeout(self) -> None:
         self._cancel_register_timeout()
         secs = int(self.settings.register_timeout or 15)
-
-        def fire():
-            if not self.is_registered:
-                self._emit("health", {"state": "error"})
-                self._emit("registration_failed", {"cause": "Connection Timeout", "code": 0,
-                                                   "reason": f"Sin respuesta del PBX en {secs}s"})
-        self._reg_timer = threading.Timer(secs, fire)
+        self._reg_timer = threading.Timer(secs, self._on_register_timeout)
         self._reg_timer.daemon = True
         self._reg_timer.start()
+
+    def _on_register_timeout(self) -> None:
+        """Sin respuesta del PBX: probar TCP si veníamos por UDP, si no, fallar."""
+        if self.is_registered:
+            return
+        secs = int(self.settings.register_timeout or 15)
+        if self._can_fallback_to_tcp():
+            log.warning("UDP sin respuesta en %ss: reintentando por TCP", secs)
+            self.settings.transport = "tcp"
+            self._fallback_done = True
+            self._emit("health", {"state": "warning"})
+            self._emit("transport_fallback", {"from": "udp", "to": "tcp"})
+            self._post(self._register_job)
+            return
+        self._emit("health", {"state": "error"})
+        self._emit("registration_failed", {"cause": "Connection Timeout", "code": 0,
+                                           "reason": f"Sin respuesta del PBX en {secs}s"})
+
+    def _can_fallback_to_tcp(self) -> bool:
+        return (bool(self.settings.auto_fallback_tcp)
+                and self.settings.transport.lower() == "udp"
+                and not getattr(self, "_fallback_done", False)
+                and bool(getattr(self, "_transports", {}).get("tcp", False)))
 
     def _cancel_register_timeout(self) -> None:
         if self._reg_timer is not None:
