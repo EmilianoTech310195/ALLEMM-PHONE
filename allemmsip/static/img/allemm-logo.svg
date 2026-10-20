@@ -1,5 +1,5 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100" height="100">
-  <!-- Logo provisional ALLEMM (triángulo con punto). Sustituir por el archivo oficial. -->
-  <path d="M50 8 L92 90 L76 90 L50 38 L24 90 L8 90 Z" fill="#c9a35c"/>
-  <circle cx="50" cy="72" r="7" fill="#c9a35c"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-16 -28 232 254" width="232" height="254" role="img" aria-label="ALLEMM">
+  <mask id="mk"><rect x="-40" y="-50" width="300" height="320" fill="#fff"/><rect x="67" y="172" width="66" height="62" fill="#000"/></mask>
+  <path d="M67 190 L14 190 L100 6 L186 190 L133 190" fill="none" stroke="#C69F5A" stroke-width="20" stroke-linejoin="miter" mask="url(#mk)"/>
+  <circle cx="100" cy="135" r="14.3" fill="#C69F5A"/>
 </svg>

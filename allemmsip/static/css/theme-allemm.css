@@ -230,3 +230,36 @@ body {
 .notes-header { background: var(--allemm-black); }
 .notes-body { background: var(--allemm-black); }
 .ctrl-hangup.hidden, .answer-btn.hidden, .call-btn.hidden { display: none !important; }
+
+
+/* ============================================================
+   LOGO ALLEMM ANIMADO (mismo código que el sitio; sin JavaScript)
+   .mark = logo; .draw = se dibuja en bucle cuando un ancestro tiene .live;
+   .glow = resplandor dorado. Color: --gold.
+   ============================================================ */
+:root { --gold: var(--allemm-gold); }
+.mark { display: block; overflow: visible; flex: 0 0 auto; width: 120px; }
+.mark .a-path { fill: none; stroke: var(--gold); stroke-width: 20; stroke-linejoin: miter; }
+.mark .a-dot { fill: var(--gold); transform-box: fill-box; transform-origin: center; }
+.mark .a-ring { fill: none; stroke: var(--gold); stroke-width: 3; opacity: 0; transform-box: fill-box; transform-origin: center; }
+.mark.draw .a-path { stroke-dasharray: 590; stroke-dashoffset: 590; }
+.mark.draw .a-dot { opacity: 0; transform: scale(.12); }
+.live .mark.draw .a-path { animation: mkLoop 8s cubic-bezier(.62,.03,.18,1) .2s infinite; }
+.live .mark.draw .a-dot { animation: mkDotLoop 8s ease-out .2s infinite; }
+.live .mark.draw .a-ring { animation: mkRingLoop 8s cubic-bezier(.2,.6,.3,1) .2s infinite; }
+@keyframes mkLoop { 0% { stroke-dashoffset: 590; } 24%, 88% { stroke-dashoffset: 0; } 97%, 100% { stroke-dashoffset: -590; } }
+@keyframes mkDotLoop { 0%, 16% { opacity: 0; transform: scale(.12); } 28% { opacity: 1; transform: scale(1.18); } 33%, 88% { opacity: 1; transform: scale(1); } 95%, 100% { opacity: 0; transform: scale(.12); } }
+@keyframes mkRingLoop { 0%, 34% { opacity: 0; transform: scale(1); } 35% { opacity: .5; transform: scale(1); } 54% { opacity: 0; transform: scale(3.4); } 59% { opacity: .5; transform: scale(1); } 78%, 100% { opacity: 0; transform: scale(3.4); } }
+.mark.glow { filter: drop-shadow(0 0 26px rgba(198,159,90,.34)); }
+@media (prefers-reduced-motion: reduce) {
+  .mark.draw .a-path { animation: none; stroke-dashoffset: 0; }
+  .mark.draw .a-dot { animation: none; opacity: 1; transform: none; }
+  .mark.draw .a-ring { animation: none; }
+}
+
+/* Dónde va el logo en la app */
+.login-logo-wrap { display: flex; justify-content: center; margin: 2px 0 14px; }
+.login-logo-wrap .mark { width: 84px; }
+.sidebar-logo { width: 40px; height: 40px; margin-bottom: 10px; }
+.sidebar-logo .mark { width: 30px; }
+.sidebar-logo .mark.glow { filter: drop-shadow(0 0 8px rgba(198,159,90,.4)); }

@@ -13,12 +13,20 @@
     <link rel="stylesheet" href="css/theme-allemm.css">
     <link rel="icon" type="image/svg+xml" href="img/allemm-logo.svg">
 </head>
-<body>
+<body class="live">
 
     <!-- Pantalla de Login (sin cambios funcionales) -->
     <div id="loginScreen" class="login-screen">
         <div class="login-box">
-            <img src="img/allemm-logo.svg" alt="ALLEMM" class="login-logo">
+            <div class="login-logo-wrap"><svg class="mark draw glow" viewBox="-16 -28 232 254" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="ALLEMM">
+                <mask id="mkLogin">
+                    <rect x="-40" y="-50" width="300" height="320" fill="#fff"/>
+                    <rect x="67" y="172" width="66" height="62" fill="#000"/>
+                </mask>
+                <path class="a-path" d="M67 190 L14 190 L100 6 L186 190 L133 190" mask="url(#mkLogin)"/>
+                <circle class="a-ring" cx="100" cy="135" r="14.3"/>
+                <circle class="a-dot" cx="100" cy="135" r="14.3"/>
+            </svg></div>
             <h2 data-brand="appName">ALLEMM</h2>
             <p class="login-subtitle" data-brand="tagline">Tecnología que opera contigo</p>
 
@@ -57,8 +65,15 @@
             <!-- ============ SIDEBAR ============ -->
             <aside class="sidebar">
                 <div class="sidebar-logo">
-                    <img src="img/allemm-logo.svg" alt="ALLEMM"
-                         onerror="this.outerHTML='<span class=\'sidebar-logo-fallback\'>ALLEMM</span>';">
+                    <svg class="mark draw glow" viewBox="-16 -28 232 254" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="ALLEMM">
+                <mask id="mkSide">
+                    <rect x="-40" y="-50" width="300" height="320" fill="#fff"/>
+                    <rect x="67" y="172" width="66" height="62" fill="#000"/>
+                </mask>
+                <path class="a-path" d="M67 190 L14 190 L100 6 L186 190 L133 190" mask="url(#mkSide)"/>
+                <circle class="a-ring" cx="100" cy="135" r="14.3"/>
+                <circle class="a-dot" cx="100" cy="135" r="14.3"/>
+            </svg>
                 </div>
 
                 <button class="nav-btn active" data-tab="dialer" aria-label="Marcador" title="Marcador">
