@@ -94,7 +94,7 @@ tests/                      ← pruebas puras, del puente y de llamadas reales (
 | | Web (uvacSIP Web) | Escritorio (ALLEMM SIP) |
 |---|---|---|
 | Transporte SIP | WSS (WebSocket) 8089 | **UDP / TCP / TLS** (configurable) |
-| Audio | WebRTC del navegador | **PJSIP** con WASAPI, selección de micrófono y altavoz |
+| Audio | WebRTC del navegador | **PJSIP** (WMME de Windows), selección de micrófono y altavoz |
 | Motor | `js/sip.js` + JsSIP 3.10 | `allemmsip/engine.py` (pjsua2) + `js/sip.js` puente |
 | Interfaz | igual | igual (más el modal de Ajustes) |
 | Ocupado con 2.ª llamada | 486 Busy | 486 Busy |

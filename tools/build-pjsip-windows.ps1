@@ -51,7 +51,7 @@ $configSite = Join-Path $pjdir "pjlib\include\pj\config_site.h"
 #define PJ_HAS_IPV6 1
 #define PJMEDIA_HAS_SRTP 1
 #define PJSUA_MAX_CALLS 4
-#define PJMEDIA_AUDIO_DEV_HAS_WASAPI 1
+/* Audio en escritorio: WMME (predeterminado de PJSIP en Windows). WASAPI solo existe para UWP. */
 #define PJMEDIA_HAS_VIDEO 0
 "@ | Set-Content -Encoding ASCII $configSite
 
