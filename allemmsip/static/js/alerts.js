@@ -61,6 +61,17 @@ const UvacAlerts = {
             ],
             retryable: true
         },
+        'PBX_BLOCKED_AFTER_AUTH': {
+            icon: '🔒',
+            title: 'El PBX dejó de responder',
+            message: 'Hubo una contraseña incorrecta y el PBX bloqueó temporalmente esta computadora (protección contra intentos fallidos).',
+            causes: [
+                'Verifica la extensión y la contraseña SIP con el administrador',
+                'Espera 10 a 30 minutos antes de volver a intentar',
+                'El administrador puede desbloquear la IP en FreePBX → Intrusion Detection'
+            ],
+            retryable: true
+        },
         'WS_DISCONNECTED': {
             icon: '📡',
             title: 'Conexión perdida',

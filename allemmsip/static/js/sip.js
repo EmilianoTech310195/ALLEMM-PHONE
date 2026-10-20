@@ -298,6 +298,16 @@ AllemmBridge.on('registration_failed', function (d) {
     uvacError('❌ Falló el registro:', d.cause, d.code || '', d.reason || '');
     UvacAlerts.setHealth('error');
     if (UvacSIP.onRegistrationFailed) UvacSIP.onRegistrationFailed(d.cause || 'Connection Error');
+    if (d.hint === 'auth_ban') {
+        // app.js muestra el modal genérico de "fuera de línea"; lo reemplazamos
+        // por la explicación real un instante después.
+        setTimeout(function () {
+            UvacAlerts.show('PBX_BLOCKED_AFTER_AUTH', {
+                autoRetry: false,
+                retryCallback: function () { UvacSIP.reconnect(); }
+            });
+        }, 1300);
+    }
 });
 
 AllemmBridge.on('incoming_call', function (d) {

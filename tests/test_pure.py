@@ -178,3 +178,17 @@ def test_no_fallback_when_disabled_or_not_udp():
         eng._transports = {"udp": True, "tcp": True}
         eng._on_register_timeout()
         assert "registration_failed" in events
+
+
+def test_timeout_after_auth_failure_is_flagged_as_ban():
+    from allemmsip.engine import EngineSettings, SipEngine
+
+    eng = SipEngine(EngineSettings(sip_server="pbx.example.com", transport="tcp"))
+    events = []
+    eng._emit = lambda name, data=None: events.append((name, data or {}))
+    eng._on_reg_state(401, "Unauthorized", 300, 171100)
+    assert events[-1][0] == "registration_failed" and events[-1][1]["cause"] == "Authentication Error"
+    eng._on_reg_state(408, "Request Timeout", 300, 0)
+    assert events[-1][1]["hint"] == "auth_ban"
+    eng._on_register_timeout()
+    assert events[-1][1]["hint"] == "auth_ban"

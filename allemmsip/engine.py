@@ -567,8 +567,10 @@ class SipEngine:
             self._post(self._register_job)
             return
         self._emit("health", {"state": "error"})
-        self._emit("registration_failed", {"cause": "Connection Timeout", "code": 0,
-                                           "reason": f"Sin respuesta del PBX en {secs}s"})
+        data = {"cause": "Connection Timeout", "code": 0, "reason": f"Sin respuesta del PBX en {secs}s"}
+        if self._recent_auth_failure():
+            data["hint"] = "auth_ban"
+        self._emit("registration_failed", data)
 
     def _can_fallback_to_tcp(self) -> bool:
         return (bool(self.settings.auto_fallback_tcp)
@@ -640,10 +642,22 @@ class SipEngine:
         self.is_registered = False
         self._cancel_register_timeout()
         cause = registration_cause(code, reason, status)
+        data = {"cause": cause, "code": code, "reason": reason}
+        if cause in ("Authentication Error", "Forbidden"):
+            self._last_auth_failure = time.monotonic()
+        elif self._recent_auth_failure():
+            # Tras una contraseña incorrecta, FreePBX (Intrusion Detection /
+            # Responsive Firewall) deja de responder a esa IP durante un rato:
+            # el síntoma es 408 justo después de un 401.
+            data["hint"] = "auth_ban"
         self._emit("health", {"state": "error"})
         if was:
             self._emit("unregistered", {})
-        self._emit("registration_failed", {"cause": cause, "code": code, "reason": reason})
+        self._emit("registration_failed", data)
+
+    def _recent_auth_failure(self, window_sec: float = 1800.0) -> bool:
+        ts = getattr(self, "_last_auth_failure", 0.0)
+        return bool(ts) and (time.monotonic() - ts) < window_sec
 
     # ---- llamadas ----------------------------------------------------------
 
