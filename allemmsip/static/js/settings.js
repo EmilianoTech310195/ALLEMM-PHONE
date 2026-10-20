@@ -46,10 +46,6 @@ const AllemmSettings = {
         AllemmBridge.call('get_settings').then(function (s) {
             self.current = s;
             self._applyToUI(s);
-            if (!s.sipServer) {
-                self.open();
-                self._status('Captura el servidor SIP para poder conectar.', 'error');
-            }
         }).catch(function (err) { uvacError('get_settings falló:', err); });
 
         AllemmBridge.call('app_info').then(function (info) {
@@ -90,6 +86,11 @@ const AllemmSettings = {
         }
         if (typeof UvacApp !== 'undefined') {
             UvacApp.AUTO_DIAL = s.autoDial !== false;
+        }
+        const serverInput = document.getElementById('sipServer');
+        if (serverInput && s.sipServer) {
+            const port = (s.sipPort && s.sipPort !== 5060) ? ':' + s.sipPort : '';
+            serverInput.value = s.sipServer + port;
         }
         document.querySelectorAll('[data-brand="appName"]').forEach(function (el) { el.textContent = s.appName || ''; });
         document.querySelectorAll('[data-brand="footerText"]').forEach(function (el) { el.textContent = s.footerText || ''; });

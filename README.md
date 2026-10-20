@@ -15,9 +15,12 @@ historial, notas, transferencia, identificador de país) y le cambia el motor:
 ## Instalar (usuarios)
 
 Descarga **`AllemmSIP-Setup.exe`** desde *Releases* (o desde *Actions →
-Compilar AllemmSIP.exe → Artifacts*) y ejecútalo. La primera vez abre
-**Ajustes** y captura el servidor SIP (PBX), puerto y transporte; después
-entra con tu extensión y contraseña SIP, las mismas de siempre.
+Compilar AllemmSIP.exe → Artifacts*) y ejecútalo. La pantalla de inicio es
+la misma del `.exe` anterior: **Servidor SIP** (`host:puerto`, viene
+precargado), **Extensión** y **Contraseña**. Son los mismos datos que en
+MicroSIP: servidor y dominio con puerto, transporte UDP, sin cifrado ni ICE,
+registro cada 300 s. En **Ajustes** se puede cambiar transporte, micrófono,
+altavoz y modo DTMF.
 
 También hay una versión portable (`AllemmSIP-portable.zip`).
 

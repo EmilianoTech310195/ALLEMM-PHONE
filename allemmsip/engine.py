@@ -63,7 +63,7 @@ class EngineSettings:
     sip_server: str = ""
     sip_port: int = 5060
     transport: str = "udp"            # udp | tcp | tls
-    register_expires: int = 600
+    register_expires: int = 300
     retry_delay: int = 5
     register_timeout: int = 15
     stun_servers: list[str] = field(default_factory=list)
@@ -456,13 +456,18 @@ class SipEngine:
 
     # ---- registro ----------------------------------------------------------
 
+    def _domain(self) -> str:
+        """``host`` o ``host:puerto`` (MicroSIP pone el puerto también en el dominio)."""
+        s = self.settings
+        default_port = 5061 if s.transport.lower() == "tls" else 5060
+        host = s.sip_server.strip()
+        port = f":{s.sip_port}" if s.sip_port and int(s.sip_port) != default_port else ""
+        return f"{host}{port}"
+
     def _server_uri(self) -> str:
         s = self.settings
-        host = s.sip_server.strip()
-        default_port = 5061 if s.transport.lower() == "tls" else 5060
-        port = f":{s.sip_port}" if s.sip_port and int(s.sip_port) != default_port else ""
         tr = "" if s.transport.lower() == "udp" else f";transport={s.transport.lower()}"
-        return f"sip:{host}{port}{tr}"
+        return f"sip:{self._domain()}{tr}"
 
     def register(self, extension: str, password: str) -> None:
         """Equivalente a ``UvacSIP.init(ext, pass)``."""
@@ -478,7 +483,7 @@ class SipEngine:
                                                "reason": "No hay servidor SIP configurado"})
             return
         cfg = pj.AccountConfig()
-        cfg.idUri = f"sip:{self.extension}@{s.sip_server.strip()}"
+        cfg.idUri = f"sip:{self.extension}@{self._domain()}"
         cfg.regConfig.registrarUri = self._server_uri()
         cfg.regConfig.registerOnAdd = True
         cfg.regConfig.timeoutSec = int(s.register_expires)
@@ -636,7 +641,7 @@ class SipEngine:
                 return False
             if self._call is not None:
                 return False
-            target = number if number.startswith(("sip:", "sips:")) else f"sip:{number}@{self.settings.sip_server.strip()}"
+            target = number if number.startswith(("sip:", "sips:")) else f"sip:{number}@{self._domain()}"
             call = _Call(self, self._acc)
             prm = pj.CallOpParam(True)
             prm.opt.audioCount = 1
@@ -744,7 +749,7 @@ class SipEngine:
             call = self._call
             if call is None or not call.confirmed or not number:
                 return False
-            target = f"sip:{number}@{self.settings.sip_server.strip()}"
+            target = f"sip:{number}@{self._domain()}"
             call.xfer(target, pj.CallOpParam())
             log.info("Transferencia a %s", target)
             return True

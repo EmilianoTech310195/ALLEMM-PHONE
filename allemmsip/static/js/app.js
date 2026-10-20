@@ -728,6 +728,12 @@ const UvacApp = {
             this._showLoginStatus('Ingresa extensión y contraseña', 'error');
             return;
         }
+        const serverInput = document.getElementById('sipServer');
+        if (serverInput && !serverInput.value.trim()) {
+            this._showLoginStatus('Ingresa el servidor SIP (ej. pbx.midominio.com:5060)', 'error');
+            serverInput.focus();
+            return;
+        }
 
         // Extensión en localStorage (no es secreto) para pre-llenar próximos logins
         localStorage.setItem('uvac_extension', ext);

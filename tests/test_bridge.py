@@ -141,3 +141,14 @@ def test_incoming_call_brings_window_to_front(tmp_path, monkeypatch):
     engine.listener("incoming_call", {"caller": "2001"})
     assert api.window.restored.wait(3)
     assert api.app_info()["engineAvailable"] is True
+
+
+def test_register_with_server_from_login_saves_settings(tmp_path, monkeypatch):
+    api, engine, scripts = _api(tmp_path, monkeypatch)
+    assert api.sip_register("2091", "pw", "pbx.example.com:49999") == {"ok": True}
+    assert api.get_settings()["sipServer"] == "pbx.example.com"
+    assert api.get_settings()["sipPort"] == 49999
+    assert engine.settings.sip_server == "pbx.example.com" and engine.settings.sip_port == 49999
+    assert engine.calls[-1] == ("register", "2091", "pw")
+    bad = api.sip_register("2091", "pw", ":")
+    assert bad["ok"] is False and bad["cause"] == "BAD_SERVER"

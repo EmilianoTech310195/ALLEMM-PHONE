@@ -105,10 +105,17 @@ const UvacSIP = {
     _connect: function () {
         const self = this;
         UvacAlerts.setHealth('warning');
-        AllemmBridge.call('sip_register', this.savedExtension, this.savedPassword)
+        // Servidor SIP capturado en el login (host o host:puerto), como en el .exe anterior.
+        const serverInput = document.getElementById('sipServer');
+        const server = serverInput ? serverInput.value.trim() : '';
+        AllemmBridge.call('sip_register', this.savedExtension, this.savedPassword, server)
             .then(function (res) {
                 if (res && res.ok === false) {
                     uvacError('Registro rechazado por el motor:', res.error);
+                    if (res.cause === 'BAD_SERVER') {
+                        UvacAlerts.setHealth('error');
+                        if (self.onRegistrationFailed) self.onRegistrationFailed('Connection Error');
+                    }
                 }
             })
             .catch(function (err) {

@@ -29,22 +29,22 @@ VERSION = "1.0.0"
 
 DEFAULTS: dict[str, Any] = {
     # Conexión SIP
-    "sipServer": "",
-    "sipPort": 5060,
+    "sipServer": "pbx18879.pbxhosting.com.mx",   # mismo valor que el .exe anterior y el manual de MicroSIP
+    "sipPort": 49999,
     "transport": "udp",             # udp | tcp | tls
-    "registerExpires": 600,
+    "registerExpires": 300,         # MicroSIP: "Refresco de registro" 300
     "registerTimeout": 15,
     "retryDelay": 5,
     "maxRetries": 3,
-    "stunEnabled": True,
+    "stunEnabled": False,           # MicroSIP: "Dirección pública" Automático, sin STUN/ICE
     "stunServers": ["stun.l.google.com:19302", "stun1.l.google.com:19302"],
-    "srtp": "optional",             # off | optional | mandatory
+    "srtp": "off",                  # off | optional | mandatory (MicroSIP: "Comunicación cifrada" desactivado)
     "sessionTimers": False,
     # Audio
     "captureDevice": "",
     "playbackDevice": "",
     "echoCancelMs": 200,
-    "audioCodecs": ["PCMU", "PCMA", "opus", "G722"],
+    "audioCodecs": ["PCMU", "PCMA", "G722", "opus"],
     "dtmfMode": "INFO",             # INFO | RFC2833
     # Interfaz
     "appName": "Corporativo de Viajes UVAC",
@@ -148,6 +148,36 @@ def _normalize(s: dict) -> dict:
     if isinstance(s.get("audioCodecs"), str):
         s["audioCodecs"] = [x.strip() for x in s["audioCodecs"].split(",") if x.strip()]
     return s
+
+
+def parse_server(text: str, default_port: int = 5060) -> tuple[str, int]:
+    """``'pbx.midominio.com:49999'`` → ``('pbx.midominio.com', 49999)``.
+
+    Acepta también ``sip:host:port``, ``host`` a secas (puerto por defecto) o
+    una IPv6 entre corchetes ``[::1]:5060``.
+    """
+    text = (text or "").strip()
+    for prefix in ("sip:", "sips:"):
+        if text.lower().startswith(prefix):
+            text = text[len(prefix):]
+    text = text.split("/", 1)[0].split(";", 1)[0].strip()
+    if not text:
+        return "", default_port
+    if text.startswith("["):
+        host, _, rest = text[1:].partition("]")
+        port = rest.lstrip(":")
+    elif text.count(":") == 1:
+        host, _, port = text.partition(":")
+    else:
+        host, port = text, ""
+    host = host.strip()
+    try:
+        port_n = int(port) if port else default_port
+    except ValueError:
+        port_n = default_port
+    if not (0 < port_n < 65536):
+        port_n = default_port
+    return host, port_n
 
 
 def engine_settings(s: dict) -> EngineSettings:

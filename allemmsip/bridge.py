@@ -196,11 +196,18 @@ class JsApi:
             self._dispatcher("engine_error", {"message": str(exc)})
             return default
 
-    def sip_register(self, extension: str, password: str) -> dict:
+    def sip_register(self, extension: str, password: str, server: str = "") -> dict:
         if not self._engine.available():
             msg = "El motor SIP (pjsua2) no está compilado en esta instalación."
             self._dispatcher("registration_failed", {"cause": "Connection Error", "code": 0, "reason": msg})
             return {"ok": False, "error": msg}
+        if server:
+            # El login trae "host" o "host:puerto" (como el .exe anterior / MicroSIP).
+            host, port = config.parse_server(server, int(self._settings.get("sipPort") or 5060))
+            if not host:
+                return {"ok": False, "cause": "BAD_SERVER", "error": "Servidor SIP inválido"}
+            if host != self._settings.get("sipServer") or port != int(self._settings.get("sipPort") or 0):
+                self.save_settings({"sipServer": host, "sipPort": port})
 
         def job():
             self._engine.register(str(extension), str(password))

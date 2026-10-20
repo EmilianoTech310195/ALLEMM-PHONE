@@ -87,7 +87,7 @@ def test_number_from_argument(arg, expected):
 def test_settings_roundtrip(tmp_path, monkeypatch):
     monkeypatch.setenv("ALLEMMSIP_DATA_DIR", str(tmp_path))
     s = config.load_settings()
-    assert s["sipServer"] == ""
+    assert s["sipServer"] == config.DEFAULTS["sipServer"]
     assert s["transport"] == "udp"
     saved = config.save_settings({"sipServer": " pbx.example.com ", "sipPort": "5062", "transport": "TCP",
                                   "dtmfMode": "rfc2833", "srtp": "bogus", "ignorado": 1})
@@ -101,9 +101,9 @@ def test_settings_roundtrip(tmp_path, monkeypatch):
     assert again["sipServer"] == "pbx.example.com"
     es = config.engine_settings(again)
     assert es.sip_port == 5062 and es.transport == "tcp" and es.dtmf_mode == "RFC2833"
-    assert es.stun_servers  # STUN activo por defecto
-    es2 = config.engine_settings(config.save_settings({"stunEnabled": False}))
-    assert es2.stun_servers == []
+    assert es.stun_servers == []  # como MicroSIP: sin STUN por defecto
+    es2 = config.engine_settings(config.save_settings({"stunEnabled": True}))
+    assert es2.stun_servers
 
 
 def test_settings_seed_next_to_exe(tmp_path, monkeypatch):
@@ -132,3 +132,15 @@ def test_single_instance_handoff(tmp_path):
     third = SingleInstance(lambda n: None, lock_dir=tmp_path)
     assert third.try_acquire()
     third.release()
+
+
+@pytest.mark.parametrize("text,expected", [
+    ("pbx18879.pbxhosting.com.mx:49999", ("pbx18879.pbxhosting.com.mx", 49999)),
+    ("  pbx.example.com ", ("pbx.example.com", 5060)),
+    ("sip:pbx.example.com:5062;transport=udp", ("pbx.example.com", 5062)),
+    ("[2001:db8::1]:5080", ("2001:db8::1", 5080)),
+    ("pbx.example.com:abc", ("pbx.example.com", 5060)),
+    ("", ("", 5060)),
+])
+def test_parse_server(text, expected):
+    assert config.parse_server(text) == expected
