@@ -25,6 +25,7 @@ jobs:
         if: steps.pjcache.outputs.cache-hit != 'true'
         run: |
           sudo apt-get update && sudo apt-get install -y swig build-essential libssl-dev uuid-dev
+          pip install setuptools wheel
           git clone --depth 1 --branch 2.15.1 https://github.com/pjsip/pjproject.git /tmp/pjproject
           cd /tmp/pjproject
           printf '#define PJ_HAS_IPV6 1\n#define PJMEDIA_HAS_SRTP 1\n#define PJSUA_MAX_CALLS 4\n' > pjlib/include/pj/config_site.h
