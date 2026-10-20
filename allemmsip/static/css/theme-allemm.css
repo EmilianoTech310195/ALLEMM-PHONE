@@ -267,3 +267,6 @@ body {
 .sidebar-logo { width: 40px; height: 40px; margin-bottom: 10px; }
 .sidebar-logo .mark { width: 30px; }
 .sidebar-logo .mark.glow { filter: none; }
+
+/* Escritorio: el banner de notificaciones del navegador no aplica */
+.notif-banner { display: none !important; }

@@ -375,3 +375,17 @@ AllemmBridge.on('launch_number', function (d) {
 window.addEventListener('online', function () {
     AllemmBridge.call('sip_network_changed').catch(function () {});
 });
+
+/* ---------- Escritorio: sin notificaciones del navegador ----------
+   En el .exe las llamadas entrantes las avisa el motor (timbre, ventana al
+   frente y parpadeo en la barra de tareas). El permiso de notificaciones y el
+   banner "Activa las notificaciones" eran de la versión web (PWA). */
+document.addEventListener('DOMContentLoaded', function () {
+    if (typeof UvacApp === 'undefined') return;
+    UvacApp._requestNotificationPermission = function () {};
+    UvacApp._showNotifBanner = function () {};
+    UvacApp._onClickEnableNotif = function () {};
+    UvacApp._showCallNotification = function () {};
+    const banner = document.getElementById('notifBanner');
+    if (banner) banner.classList.add('hidden');
+});

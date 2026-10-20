@@ -125,6 +125,29 @@ class JsApi:
             w.on_top = False
         except Exception:  # noqa: BLE001
             pass
+        self._flash_taskbar()
+
+    def _flash_taskbar(self, count: int = 6) -> None:
+        """Parpadeo del botón en la barra de tareas (como MicroSIP) al entrar una llamada."""
+        if os.name != "nt" or self._window is None:
+            return
+        try:
+            import ctypes
+            from ctypes import wintypes
+
+            hwnd = int(getattr(getattr(self._window, "native", None), "Handle", 0) or 0)
+            if not hwnd:
+                return
+
+            class FLASHWINFO(ctypes.Structure):
+                _fields_ = [("cbSize", wintypes.UINT), ("hwnd", wintypes.HWND), ("dwFlags", wintypes.DWORD),
+                            ("uCount", wintypes.UINT), ("dwTimeout", wintypes.DWORD)]
+
+            FLASHW_ALL, FLASHW_TIMERNOFG = 0x3, 0xC
+            info = FLASHWINFO(ctypes.sizeof(FLASHWINFO), hwnd, FLASHW_ALL | FLASHW_TIMERNOFG, count, 0)
+            ctypes.windll.user32.FlashWindowEx(ctypes.byref(info))
+        except Exception:  # noqa: BLE001
+            log.debug("FlashWindowEx no disponible", exc_info=True)
 
     # ---- información y ajustes ----------------------------------------------
 
