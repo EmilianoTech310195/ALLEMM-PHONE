@@ -138,7 +138,7 @@ def _window(api: JsApi, dispatcher: EventDispatcher, settings: dict) -> int:
 
     data_dir = config.data_dir()
     data_dir.mkdir(parents=True, exist_ok=True)
-    title = str(settings.get("appName") or config.APP_NAME)
+    title = f'{settings.get("appName") or "ALLEMM"} SIP'.strip()
     window = webview.create_window(
         title, str(index), js_api=api, width=1180, height=780, min_size=(900, 640),
         hidden=bool(settings.get("startMinimized")),

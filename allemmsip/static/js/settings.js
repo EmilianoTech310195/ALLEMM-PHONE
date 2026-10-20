@@ -94,7 +94,8 @@ const AllemmSettings = {
         }
         document.querySelectorAll('[data-brand="appName"]').forEach(function (el) { el.textContent = s.appName || ''; });
         document.querySelectorAll('[data-brand="footerText"]').forEach(function (el) { el.textContent = s.footerText || ''; });
-        if (s.appName) document.title = s.appName;
+        document.querySelectorAll('[data-brand="tagline"]').forEach(function (el) { el.textContent = s.tagline || ''; });
+        if (s.appName) document.title = s.appName + ' SIP';
     },
 
     open: function () {

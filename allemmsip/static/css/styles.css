@@ -1,6 +1,6 @@
 /* ========================================
-   Corporativo de Viajes UVAC - Softphone Web
-   Diseño v4.1 - Compacto
+   ALLEMM SIP - Softphone de escritorio
+   Base: diseño v4.1 compacto; tema oscuro en theme-allemm.css
    ======================================== */
 
 * {
@@ -10,28 +10,42 @@
 }
 
 :root {
-    --uvac-blue: #1e4d8c;
-    --uvac-blue-dark: #173e72;
-    --uvac-blue-light: #2563eb;
-    --uvac-blue-50: #eff6ff;
-    --gray-50: #f9fafb;
-    --gray-100: #f3f4f6;
-    --gray-200: #e5e7eb;
-    --gray-300: #d1d5db;
-    --gray-400: #9ca3af;
-    --gray-500: #6b7280;
-    --gray-600: #4b5563;
-    --gray-700: #374151;
-    --gray-800: #1f2937;
-    --gray-900: #111827;
-    --success: #22c55e;
-    --success-dark: #16a34a;
-    --warning: #f59e0b;
-    --danger: #ef4444;
-    --danger-dark: #dc2626;
-    --shadow-md: 0 4px 12px rgba(0,0,0,0.08);
-    --shadow-lg: 0 10px 30px rgba(0,0,0,0.10);
-    --shadow-xl: 0 20px 50px rgba(0,0,0,0.15);
+    /* ALLEMM — tema oscuro con acento dorado. Los nombres --uvac-* se conservan
+       porque el resto de la hoja los usa; su valor ahora es el de la marca. */
+    --allemm-black: #0a0a0a;
+    --allemm-bg: #0f0f0f;
+    --allemm-surface: #161616;
+    --allemm-surface-2: #1d1d1d;
+    --allemm-line: #2a2a2a;
+    --allemm-gold: #c9a35c;
+    --allemm-gold-dark: #b08d49;
+    --allemm-gold-soft: rgba(201, 163, 92, 0.14);
+    --allemm-text: #f3f1ec;
+    --allemm-muted: #9a9a9a;
+
+    --uvac-blue: var(--allemm-gold);
+    --uvac-blue-dark: var(--allemm-gold-dark);
+    --uvac-blue-light: #e2c07a;
+    --uvac-blue-50: var(--allemm-gold-soft);
+    /* Escala de grises invertida: lo que era claro ahora es oscuro */
+    --gray-50: #171717;
+    --gray-100: #1f1f1f;
+    --gray-200: #2a2a2a;
+    --gray-300: #3a3a3a;
+    --gray-400: #7a7a7a;
+    --gray-500: #9a9a9a;
+    --gray-600: #b5b5b5;
+    --gray-700: #d2d2d2;
+    --gray-800: #e9e7e2;
+    --gray-900: #f3f1ec;
+    --success: #3ccf7a;
+    --success-dark: #2fb467;
+    --warning: #e0a63a;
+    --danger: #e5484d;
+    --danger-dark: #c93c41;
+    --shadow-md: 0 4px 12px rgba(0,0,0,0.35);
+    --shadow-lg: 0 10px 30px rgba(0,0,0,0.45);
+    --shadow-xl: 0 20px 50px rgba(0,0,0,0.6);
 }
 
 body {

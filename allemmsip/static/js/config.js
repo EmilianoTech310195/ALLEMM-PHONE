@@ -85,9 +85,9 @@ const UVAC_CONFIG = {
     // CONFIGURACIÓN VISUAL
     // ========================================
 
-    appName: 'Corporativo de Viajes UVAC',
-    companyName: 'Corporativo de Viajes UVAC',
-    footerText: 'Desarrollado por UVAC Tech',
+    appName: 'ALLEMM',
+    companyName: 'ALLEMM',
+    footerText: 'Ingresa tus credenciales SIP',
 
     // Logs en consola.
     // ⚠️ En producción dejar en false: los logs de JsSIP con debug:true

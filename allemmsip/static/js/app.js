@@ -1372,7 +1372,7 @@ const UvacApp = {
                     try {
                         new Notification('🎉 Notificaciones activadas', {
                             body: 'Ya recibirás aviso cuando entre una llamada',
-                            icon: 'img/logo_uvac.jpg',
+                            icon: 'img/allemm-logo.svg',
                             tag: 'uvac-test'
                         });
                     } catch (e) {}
@@ -1421,8 +1421,8 @@ const UvacApp = {
             // Crear la notificación SIEMPRE (esté la app al frente o atrás)
             const notif = new Notification('📞 Llamada entrante', {
                 body: `${caller} te está llamando`,
-                icon: 'img/logo_uvac.jpg',
-                badge: 'img/logo_uvac.jpg',
+                icon: 'img/allemm-logo.svg',
+                badge: 'img/allemm-logo.svg',
                 tag: 'uvac-incoming-call',
                 requireInteraction: true,
                 silent: false,

@@ -47,9 +47,10 @@ DEFAULTS: dict[str, Any] = {
     "audioCodecs": ["PCMU", "PCMA", "G722", "opus"],
     "dtmfMode": "INFO",             # INFO | RFC2833
     # Interfaz
-    "appName": "Corporativo de Viajes UVAC",
-    "companyName": "Corporativo de Viajes UVAC",
-    "footerText": "Desarrollado por UVAC Tech",
+    "appName": "ALLEMM",
+    "companyName": "ALLEMM",
+    "tagline": "Tecnología que opera contigo",
+    "footerText": "Ingresa tus credenciales SIP",
     "historyRetentionDays": 6,
     "callTimeout": 60,
     "autoDial": True,

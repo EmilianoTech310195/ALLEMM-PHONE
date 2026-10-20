@@ -6,20 +6,21 @@
     <!-- Aplicación de escritorio (pywebview + PJSIP). Todo se sirve en local:
          no hay CDNs, ni PWA, ni WebSocket. -->
     <meta name="description" content="ALLEMM SIP - Softphone de escritorio">
-    <meta name="theme-color" content="#1e4d8c">
-    <title data-brand="appName">Corporativo de Viajes UVAC</title>
+    <meta name="theme-color" content="#0a0a0a">
+    <title data-brand="appName">ALLEMM SIP</title>
     <link rel="stylesheet" href="vendor/tabler/tabler-icons.min.css">
     <link rel="stylesheet" href="css/styles.css">
-    <link rel="icon" type="image/jpeg" href="img/logo_uvac.jpg">
+    <link rel="stylesheet" href="css/theme-allemm.css">
+    <link rel="icon" type="image/svg+xml" href="img/allemm-logo.svg">
 </head>
 <body>
 
     <!-- Pantalla de Login (sin cambios funcionales) -->
     <div id="loginScreen" class="login-screen">
         <div class="login-box">
-            <img src="img/logo_uvac.jpg" alt="UVAC" class="login-logo">
-            <h2 data-brand="appName">Corporativo de Viajes UVAC</h2>
-            <p class="login-subtitle">Ingresa tus credenciales SIP</p>
+            <img src="img/allemm-logo.svg" alt="ALLEMM" class="login-logo">
+            <h2 data-brand="appName">ALLEMM</h2>
+            <p class="login-subtitle" data-brand="tagline">Tecnología que opera contigo</p>
 
             <div class="login-form">
                 <label for="sipServer">Servidor SIP</label>
@@ -44,7 +45,7 @@
                 <div id="loginStatus" class="login-status"></div>
             </div>
 
-            <div class="login-footer"><span data-brand="footerText">Desarrollado por UVAC Tech</span> · <a href="#" id="settingsBtn" class="settings-link" title="Servidor, audio, DTMF"><i class="ti ti-settings"></i> Ajustes</a></div>
+            <div class="login-footer"><span data-brand="footerText">Ingresa tus credenciales SIP</span> · <a href="#" id="settingsBtn" class="settings-link" title="Servidor, audio, DTMF"><i class="ti ti-settings"></i> Ajustes</a></div>
         </div>
     </div>
 
@@ -56,8 +57,8 @@
             <!-- ============ SIDEBAR ============ -->
             <aside class="sidebar">
                 <div class="sidebar-logo">
-                    <img src="img/logo_uvac.jpg" alt="UVAC"
-                         onerror="this.outerHTML='<span class=\'sidebar-logo-fallback\'>UVAC</span>';">
+                    <img src="img/allemm-logo.svg" alt="ALLEMM"
+                         onerror="this.outerHTML='<span class=\'sidebar-logo-fallback\'>ALLEMM</span>';">
                 </div>
 
                 <button class="nav-btn active" data-tab="dialer" aria-label="Marcador" title="Marcador">
@@ -85,7 +86,7 @@
                 <div class="header">
                     <div class="header-brand">
                         <div class="header-text">
-                            <div class="header-title" data-brand="appName">Corporativo de Viajes UVAC</div>
+                            <div class="header-title" data-brand="appName">ALLEMM</div>
                             <div class="header-subtitle"><span id="extensionLabel">Ext. --</span></div>
                         </div>
                     </div>
@@ -194,8 +195,8 @@
 
                 <!-- Footer -->
                 <div class="footer">
-                    <span class="brand">UVAC Tech</span>
-                    <span class="version">· ALLEMM SIP · escritorio</span>
+                    <span class="brand" data-brand="tagline">Tecnología que opera contigo</span>
+                    <span class="version">· ALLEMM SIP</span>
                 </div>
             </main>
 
