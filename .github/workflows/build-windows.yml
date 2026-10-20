@@ -69,12 +69,21 @@ jobs:
           ALLEMMSIP_DATA_DIR: ${{ github.workspace }}\smoke-window
         run: |
           $p = Start-Process -FilePath dist\AllemmSIP\AllemmSIP.exe -PassThru
-          Start-Sleep -Seconds 20
+          # WebView2 puede tardar en inicializarse la primera vez en el runner: esperar hasta 120 s.
+          $loaded = $false
+          for ($i = 0; $i -lt 60 -and -not $loaded; $i++) {
+            Start-Sleep -Seconds 2
+            if ($p.HasExited) { break }
+            if (Test-Path smoke-window\allemmsip.log) {
+              $loaded = [bool](Select-String -Path smoke-window\allemmsip.log -Pattern "Interfaz cargada" -Quiet)
+            }
+          }
           $alive = -not $p.HasExited
           Stop-Process -Id $p.Id -Force -ErrorAction SilentlyContinue
           Write-Host "--- allemmsip.log ---"; Get-Content smoke-window\allemmsip.log -ErrorAction SilentlyContinue
           if (-not $alive) { throw "La aplicación con ventana se cerró sola (¿pywebview/WebView2?)" }
-          if (-not (Select-String -Path smoke-window\allemmsip.log -Pattern "Interfaz cargada" -Quiet)) { throw "La interfaz no cargó" }
+          if (-not $loaded) { throw "La interfaz no cargó en 120 s" }
+          Write-Host "Ventana OK tras $(($i)*2) s"
 
       - name: Versión
         shell: pwsh
