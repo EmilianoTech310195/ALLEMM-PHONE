@@ -19,12 +19,7 @@ body {
 
 /* Patrón sutil de puntos como en el sitio ALLEMM */
 .login-screen,
-.app-screen {
-    background-color: var(--allemm-black);
-    background-image: radial-gradient(rgba(201,163,92,0.10) 1px, transparent 1px);
-    background-size: 22px 22px;
-}
-.login-screen { background: var(--allemm-black); }
+.app-screen { background: var(--allemm-black); }
 .login-screen::before {
     background: radial-gradient(circle, rgba(201,163,92,0.12) 0%, rgba(201,163,92,0) 65%);
     width: 700px; height: 700px; top: -25%; right: -15%;
@@ -250,7 +245,16 @@ body {
 @keyframes mkLoop { 0% { stroke-dashoffset: 590; } 24%, 88% { stroke-dashoffset: 0; } 97%, 100% { stroke-dashoffset: -590; } }
 @keyframes mkDotLoop { 0%, 16% { opacity: 0; transform: scale(.12); } 28% { opacity: 1; transform: scale(1.18); } 33%, 88% { opacity: 1; transform: scale(1); } 95%, 100% { opacity: 0; transform: scale(.12); } }
 @keyframes mkRingLoop { 0%, 34% { opacity: 0; transform: scale(1); } 35% { opacity: .5; transform: scale(1); } 54% { opacity: 0; transform: scale(3.4); } 59% { opacity: .5; transform: scale(1); } 78%, 100% { opacity: 0; transform: scale(3.4); } }
-.mark.glow { filter: drop-shadow(0 0 26px rgba(198,159,90,.34)); }
+.mark.glow { filter: none; }
+.login-logo-wrap { position: relative; }
+.login-logo-wrap::before {
+    content: ''; position: absolute; left: 50%; top: 50%; width: 170px; height: 170px;
+    transform: translate(-50%, -50%);
+    background: radial-gradient(circle, rgba(198,159,90,.28) 0%, rgba(198,159,90,.10) 38%, rgba(198,159,90,0) 68%);
+    pointer-events: none;
+}
+.login-logo-wrap .mark { position: relative; }
+.mark.draw .a-path, .mark.draw .a-dot, .mark.draw .a-ring { will-change: transform, opacity; }
 @media (prefers-reduced-motion: reduce) {
   .mark.draw .a-path { animation: none; stroke-dashoffset: 0; }
   .mark.draw .a-dot { animation: none; opacity: 1; transform: none; }
@@ -262,4 +266,4 @@ body {
 .login-logo-wrap .mark { width: 84px; }
 .sidebar-logo { width: 40px; height: 40px; margin-bottom: 10px; }
 .sidebar-logo .mark { width: 30px; }
-.sidebar-logo .mark.glow { filter: drop-shadow(0 0 8px rgba(198,159,90,.4)); }
+.sidebar-logo .mark.glow { filter: none; }
