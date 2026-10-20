@@ -62,7 +62,12 @@ def main() -> None:
             f'  msbuild "{pjdir / "pjproject-vs14.sln"}" /t:libpjproject /p:Configuration={pjconfig} /p:Platform=x64'
         )
     lib = libs[0]
-    print("Enlazando con", lib)
+    # libpjproject ya agrupa todas las bibliotecas (LinkLibraryDependencies);
+    # se añaden las demás por si alguna versión no las fusiona. Los duplicados
+    # en bibliotecas estáticas no estorban al enlazador.
+    extra = sorted(set(glob.glob(str(pjdir / "lib" / f"*-{pjconfig}.lib"))
+                       + glob.glob(str(pjdir / "third_party" / "lib" / f"*-{pjconfig}.lib"))) - {lib})
+    print("Enlazando con", lib, "+", len(extra), "bibliotecas más")
 
     from setuptools import Extension, setup
 
@@ -76,7 +81,7 @@ def main() -> None:
         define_macros=[("PJ_WIN32", "1"), ("PJ_M_X86_64", "1"), ("PJ_IS_LITTLE_ENDIAN", "1"),
                        ("PJ_IS_BIG_ENDIAN", "0"), ("_CRT_SECURE_NO_WARNINGS", "1")],
         extra_compile_args=["/EHsc", "/MD", "/O2", "/bigobj", "/wd4244", "/wd4267", "/utf-8"],
-        extra_objects=[lib],
+        extra_objects=[lib, *extra],
         libraries=windows_libs,
     )
     os.chdir(HERE)
