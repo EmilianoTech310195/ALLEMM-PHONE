@@ -358,6 +358,7 @@ class SipEngine:
             cfg.uaConfig.stunTryIpv6 = False
         cfg.logConfig.level = int(s.log_level)
         cfg.logConfig.consoleLevel = 0
+        cfg.logConfig.msgLogging = int(s.log_level) >= 5   # paquetes SIP solo en diagnóstico
         self._log_writer = _LogWriter()
         cfg.logConfig.writer = self._log_writer
         cfg.medConfig.ecTailLen = int(s.echo_cancel_ms)

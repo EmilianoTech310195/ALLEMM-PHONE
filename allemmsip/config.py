@@ -197,7 +197,8 @@ def engine_settings(s: dict) -> EngineSettings:
         playback_device=s.get("playbackDevice", ""),
         echo_cancel_ms=int(s["echoCancelMs"]),
         user_agent=f"{APP_NAME}/{VERSION}",
-        log_level=int(s.get("pjsipLogLevel", 3)),
+        # Con "Diagnóstico" activado el log trae el intercambio SIP completo (nivel 5)
+        log_level=5 if s.get("debug") else int(s.get("pjsipLogLevel", 3)),
         session_timers=bool(s.get("sessionTimers", False)),
     )
 
