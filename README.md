@@ -60,7 +60,18 @@ cd ALLEMM-PHONE
 5-10 min), corre las pruebas, genera `dist\AllemmSIP\AllemmSIP.exe` y, si
 hay Inno Setup, `installer-out\AllemmSIP-Setup.exe`.
 
-Para desarrollar sin empaquetar:
+Para correrlo desde el código **sin entorno virtual** (Python 3.12 de 64 bits
+instalado con "Add to PATH"):
+
+```powershell
+pip install pywebview pytest
+# El módulo pjsua2 compilado: o lo compilas (tools\build-pjsip-windows.ps1, requiere
+# Visual Studio) o bajas el artefacto "pjsua2-windows-py312" de Actions y copias
+# _pjsua2.cp312-win_amd64.pyd y pjsua2.py en third_party\pjsua2\
+python app.py          # o doble clic en run.bat, o F5 en VS Code
+```
+
+Para desarrollar con entorno virtual:
 
 ```powershell
 .\.venv\Scripts\Activate.ps1

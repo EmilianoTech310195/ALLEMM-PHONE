@@ -1,0 +1,34 @@
+{
+    // F5 en VS Code: corre la aplicación con el Python del sistema (sin entorno virtual).
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "ALLEMM SIP (ventana)",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/app.py",
+            "console": "integratedTerminal",
+            "cwd": "${workspaceFolder}",
+            "args": ["--multi"],
+            "justMyCode": true
+        },
+        {
+            "name": "ALLEMM SIP (solo motor, sin ventana)",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/app.py",
+            "console": "integratedTerminal",
+            "cwd": "${workspaceFolder}",
+            "args": ["--headless", "--multi"]
+        },
+        {
+            "name": "Pruebas (pytest)",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "pytest",
+            "args": ["-q"],
+            "console": "integratedTerminal",
+            "cwd": "${workspaceFolder}"
+        }
+    ]
+}

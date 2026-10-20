@@ -98,6 +98,14 @@ jobs:
         shell: pwsh
         run: Compress-Archive -Path dist\AllemmSIP\* -DestinationPath AllemmSIP-portable.zip
 
+      - name: Módulo pjsua2 compilado (para correr desde el código sin compilar)
+        uses: actions/upload-artifact@v4
+        with:
+          name: pjsua2-windows-py312
+          path: |
+            third_party/pjsua2/_pjsua2*.pyd
+            third_party/pjsua2/pjsua2.py
+
       - uses: actions/upload-artifact@v4
         with:
           name: AllemmSIP-Setup
