@@ -25,8 +25,7 @@ Compression=lzma2/max
 SolidCompression=yes
 WizardStyle=modern
 ArchitecturesInstallIn64BitMode=x64compatible
-PrivilegesRequired=lowest
-PrivilegesRequiredOverridesAllowed=dialog
+PrivilegesRequired=admin
 DisableProgramGroupPage=yes
 ChangesAssociations=yes
 
@@ -51,21 +50,28 @@ Name: "{userstartup}\{#AppName}"; Filename: "{app}\{#AppExe}"; Tasks: startup
 
 [Registry]
 ; Protocolos tel: / callto: / sip:  →  AllemmSIP.exe "tel:+52..."
-Root: HKCU; Subkey: "Software\Classes\tel"; ValueType: string; ValueName: ""; ValueData: "URL:Tel Protocol"; Flags: uninsdeletekey; Tasks: telproto
-Root: HKCU; Subkey: "Software\Classes\tel"; ValueType: string; ValueName: "URL Protocol"; ValueData: ""; Tasks: telproto
-Root: HKCU; Subkey: "Software\Classes\tel\DefaultIcon"; ValueType: string; ValueName: ""; ValueData: "{app}\{#AppExe},0"; Tasks: telproto
-Root: HKCU; Subkey: "Software\Classes\tel\shell\open\command"; ValueType: string; ValueName: ""; ValueData: """{app}\{#AppExe}"" ""%1"""; Tasks: telproto
-Root: HKCU; Subkey: "Software\Classes\callto"; ValueType: string; ValueName: ""; ValueData: "URL:CallTo Protocol"; Flags: uninsdeletekey; Tasks: telproto
-Root: HKCU; Subkey: "Software\Classes\callto"; ValueType: string; ValueName: "URL Protocol"; ValueData: ""; Tasks: telproto
-Root: HKCU; Subkey: "Software\Classes\callto\DefaultIcon"; ValueType: string; ValueName: ""; ValueData: "{app}\{#AppExe},0"; Tasks: telproto
-Root: HKCU; Subkey: "Software\Classes\callto\shell\open\command"; ValueType: string; ValueName: ""; ValueData: """{app}\{#AppExe}"" ""%1"""; Tasks: telproto
-Root: HKCU; Subkey: "Software\Classes\sip"; ValueType: string; ValueName: ""; ValueData: "URL:SIP Protocol"; Flags: uninsdeletekey; Tasks: telproto
-Root: HKCU; Subkey: "Software\Classes\sip"; ValueType: string; ValueName: "URL Protocol"; ValueData: ""; Tasks: telproto
-Root: HKCU; Subkey: "Software\Classes\sip\shell\open\command"; ValueType: string; ValueName: ""; ValueData: """{app}\{#AppExe}"" ""%1"""; Tasks: telproto
+Root: HKA; Subkey: "Software\Classes\tel"; ValueType: string; ValueName: ""; ValueData: "URL:Tel Protocol"; Flags: uninsdeletekey; Tasks: telproto
+Root: HKA; Subkey: "Software\Classes\tel"; ValueType: string; ValueName: "URL Protocol"; ValueData: ""; Tasks: telproto
+Root: HKA; Subkey: "Software\Classes\tel\DefaultIcon"; ValueType: string; ValueName: ""; ValueData: "{app}\{#AppExe},0"; Tasks: telproto
+Root: HKA; Subkey: "Software\Classes\tel\shell\open\command"; ValueType: string; ValueName: ""; ValueData: """{app}\{#AppExe}"" ""%1"""; Tasks: telproto
+Root: HKA; Subkey: "Software\Classes\callto"; ValueType: string; ValueName: ""; ValueData: "URL:CallTo Protocol"; Flags: uninsdeletekey; Tasks: telproto
+Root: HKA; Subkey: "Software\Classes\callto"; ValueType: string; ValueName: "URL Protocol"; ValueData: ""; Tasks: telproto
+Root: HKA; Subkey: "Software\Classes\callto\DefaultIcon"; ValueType: string; ValueName: ""; ValueData: "{app}\{#AppExe},0"; Tasks: telproto
+Root: HKA; Subkey: "Software\Classes\callto\shell\open\command"; ValueType: string; ValueName: ""; ValueData: """{app}\{#AppExe}"" ""%1"""; Tasks: telproto
+Root: HKA; Subkey: "Software\Classes\sip"; ValueType: string; ValueName: ""; ValueData: "URL:SIP Protocol"; Flags: uninsdeletekey; Tasks: telproto
+Root: HKA; Subkey: "Software\Classes\sip"; ValueType: string; ValueName: "URL Protocol"; ValueData: ""; Tasks: telproto
+Root: HKA; Subkey: "Software\Classes\sip\shell\open\command"; ValueType: string; ValueName: ""; ValueData: """{app}\{#AppExe}"" ""%1"""; Tasks: telproto
 
 [Run]
 Filename: "{tmp}\MicrosoftEdgeWebView2Setup.exe"; Parameters: "/silent /install"; StatusMsg: "Instalando Microsoft Edge WebView2..."; Check: not WebView2Installed; Flags: waituntilterminated
+; Regla del Firewall de Windows: sin ella algunas PC nunca reciben las respuestas SIP/RTP (REGISTER 408).
+Filename: "{sys}\netsh.exe"; Parameters: "advfirewall firewall delete rule name=""{#AppName}"""; Flags: runhidden waituntilterminated; StatusMsg: "Configurando el Firewall de Windows..."
+Filename: "{sys}\netsh.exe"; Parameters: "advfirewall firewall add rule name=""{#AppName}"" dir=in action=allow program=""{app}\{#AppExe}"" enable=yes profile=any description=""Softphone SIP (UDP/TCP SIP y RTP)"""; Flags: runhidden waituntilterminated
+Filename: "{sys}\netsh.exe"; Parameters: "advfirewall firewall add rule name=""{#AppName}"" dir=out action=allow program=""{app}\{#AppExe}"" enable=yes profile=any"; Flags: runhidden waituntilterminated
 Filename: "{app}\{#AppExe}"; Description: "{cm:LaunchProgram,{#StringChange(AppName, '&', '&&')}}"; Flags: nowait postinstall skipifsilent
+
+[UninstallRun]
+Filename: "{sys}\netsh.exe"; Parameters: "advfirewall firewall delete rule name=""{#AppName}"""; Flags: runhidden waituntilterminated; RunOnceId: "fwdel"
 
 [Code]
 function WebView2Installed: Boolean;

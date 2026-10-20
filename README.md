@@ -125,3 +125,24 @@ servidor y no forman parte del `.exe`.
 
 PJSIP es **GPL v2**; al enlazarlo, este programa se distribuye bajo GPL
 (igual que MicroSIP). Ver `third_party/pjsua2/COPYING`.
+
+## Firma digital (SmartScreen y antivirus)
+
+Un `.exe` sin firma hecho con PyInstaller dispara SmartScreen y a veces el
+antivirus. Para evitarlo se firma el ejecutable y el instalador en GitHub
+Actions. El flujo ya trae el paso: solo hay que crear dos *secrets* en el
+repositorio (*Settings → Secrets and variables → Actions*):
+
+| Secret | Contenido |
+|---|---|
+| `CODESIGN_PFX_BASE64` | el certificado `.pfx` codificado en base64 (`[Convert]::ToBase64String([IO.File]::ReadAllBytes("cert.pfx"))`) |
+| `CODESIGN_PFX_PASSWORD` | la contraseña del `.pfx` |
+
+Dónde conseguir el certificado: **Azure Trusted Signing** (Microsoft, ~10 USD/mes,
+reputación inmediata en SmartScreen), o un certificado **OV/EV** de DigiCert,
+Sectigo, GlobalSign, etc. Mientras no haya certificado, el instalador funciona
+igual pero Windows mostrará "Más información → Ejecutar de todas formas".
+
+El instalador además registra la regla del **Firewall de Windows** para
+`AllemmSIP.exe` (entrada y salida), para que las respuestas SIP y el audio
+RTP no se bloqueen en ninguna PC. Por eso pide permisos de administrador.

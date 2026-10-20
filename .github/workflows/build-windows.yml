@@ -85,6 +85,20 @@ jobs:
           if (-not $loaded) { throw "La interfaz no cargó en 120 s" }
           Write-Host "Ventana OK tras $(($i)*2) s"
 
+      - name: Firmar AllemmSIP.exe (si hay certificado configurado)
+        if: env.CODESIGN_PFX_BASE64 != ''
+        shell: pwsh
+        env:
+          CODESIGN_PFX_BASE64: ${{ secrets.CODESIGN_PFX_BASE64 }}
+          CODESIGN_PFX_PASSWORD: ${{ secrets.CODESIGN_PFX_PASSWORD }}
+        run: |
+          # Secretos del repositorio: CODESIGN_PFX_BASE64 (el .pfx en base64) y CODESIGN_PFX_PASSWORD.
+          # Para Azure Trusted Signing usa en su lugar la acción azure/trusted-signing-action.
+          [IO.File]::WriteAllBytes("$env:RUNNER_TEMP\cert.pfx", [Convert]::FromBase64String($env:CODESIGN_PFX_BASE64))
+          $signtool = Get-ChildItem "${env:ProgramFiles(x86)}\Windows Kits\10\bin" -Recurse -Filter signtool.exe | Where-Object { $_.FullName -match 'x64' } | Select-Object -Last 1
+          & $signtool.FullName sign /f "$env:RUNNER_TEMP\cert.pfx" /p "$env:CODESIGN_PFX_PASSWORD" /fd SHA256 /tr http://timestamp.digicert.com /td SHA256 dist\AllemmSIP\AllemmSIP.exe
+          Get-ChildItem dist\AllemmSIP\_internal -Filter "_pjsua2*.pyd" | ForEach-Object { & $signtool.FullName sign /f "$env:RUNNER_TEMP\cert.pfx" /p "$env:CODESIGN_PFX_PASSWORD" /fd SHA256 /tr http://timestamp.digicert.com /td SHA256 $_.FullName }
+
       - name: Versión
         shell: pwsh
         run: |
@@ -102,6 +116,16 @@ jobs:
           if (-not (Test-Path $iscc)) { choco install innosetup --no-progress -y; $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe" }
           & $iscc installer\AllemmSIP.iss
           Get-ChildItem installer-out
+
+      - name: Firmar el instalador (si hay certificado configurado)
+        if: env.CODESIGN_PFX_BASE64 != ''
+        shell: pwsh
+        env:
+          CODESIGN_PFX_BASE64: ${{ secrets.CODESIGN_PFX_BASE64 }}
+          CODESIGN_PFX_PASSWORD: ${{ secrets.CODESIGN_PFX_PASSWORD }}
+        run: |
+          $signtool = Get-ChildItem "${env:ProgramFiles(x86)}\Windows Kits\10\bin" -Recurse -Filter signtool.exe | Where-Object { $_.FullName -match 'x64' } | Select-Object -Last 1
+          & $signtool.FullName sign /f "$env:RUNNER_TEMP\cert.pfx" /p "$env:CODESIGN_PFX_PASSWORD" /fd SHA256 /tr http://timestamp.digicert.com /td SHA256 installer-out\AllemmSIP-Setup.exe
 
       - name: Empaquetar versión portable
         shell: pwsh
