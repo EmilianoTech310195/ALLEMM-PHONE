@@ -17,6 +17,7 @@ import android.media.Ringtone
 import android.media.RingtoneManager
 import android.net.ConnectivityManager
 import android.net.Network
+import android.net.NetworkCapabilities
 import android.net.wifi.WifiManager
 import android.os.Build
 import android.os.Handler
@@ -166,10 +167,52 @@ class SipService : Service() {
         }
     }
 
-    fun applySettings(s: JSONObject) {
+    /** Guarda y APLICA los ajustes (llamar fuera del hilo principal). Devuelve qué se hizo. */
+    fun applySettings(s: JSONObject): String {
+        val changed = Settings.changedKeys(settings, s)
         settings = s
         Log.debug = s.optBoolean("debug")
-        engine.settings = Settings.toEngine(s)
+        val restart = changed.any { it in Settings.RESTART_KEYS }
+        val rereg = changed.any { it in Settings.REREGISTER_KEYS }
+        if ("allowMobileData" in changed) main.post { enforceNetworkPolicy() }
+        val applied = if (engineReady.isDone && !engineReady.isCompletedExceptionally)
+            engine.reconfigure(Settings.toEngine(s), restart, rereg)
+        else { engine.settings = Settings.toEngine(s); "saved" }
+        Log.app("Ajustes guardados ($applied): ${changed.sorted().joinToString(", ").ifEmpty { "sin cambios" }}")
+        return applied
+    }
+
+    // --------------------------------------------------- red móvil
+    private fun isCellularOnly(network: Network? = null): Boolean {
+        val cm = getSystemService(CONNECTIVITY_SERVICE) as ConnectivityManager
+        val caps = cm.getNetworkCapabilities(network ?: cm.activeNetwork) ?: return false
+        return caps.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR) &&
+            !caps.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) &&
+            !caps.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET)
+    }
+
+    /** "Red móvil" desactivada en Ajustes y no hay WiFi: no registrar. */
+    fun networkAllowed(network: Network? = null): Boolean =
+        settings.optBoolean("allowMobileData", true) || !isCellularOnly(network)
+
+    private fun enforceNetworkPolicy(network: Network? = null) {
+        val allowed = networkAllowed(network)
+        bg.execute {
+            runCatching {
+                if (!allowed) {
+                    if (engine.isRegistered || engine.hasCredentials) {
+                        Log.app("Sin WiFi y con datos móviles desactivados: se desregistra")
+                        engine.pause()
+                        main.post {
+                            showStatus("Sin WiFi · datos móviles desactivados en Ajustes")
+                            uiListener?.invoke("network_blocked", emptyMap())
+                        }
+                    }
+                } else if (engine.hasCredentials && !engine.isRegistered) {
+                    engine.reconnect()
+                }
+            }
+        }
     }
 
     @SuppressLint("InlinedApi")
@@ -238,11 +281,12 @@ class SipService : Service() {
                 val changed = lastNetwork != null && lastNetwork != network
                 lastNetwork = network
                 if (!changed) return
-                Log.app("Cambió la red: avisando al motor")
+                Log.app("Cambió la red (${if (isCellularOnly(network)) "datos móviles" else "WiFi/cable"}): avisando al motor")
+                if (!networkAllowed(network)) { main.post { enforceNetworkPolicy(network) }; return }
                 bg.execute {
                     runCatching {
                         engine.networkChanged()
-                        if (!engine.isRegistered && engine.extension.isNotEmpty()) engine.reconnect()
+                        if (!engine.isRegistered && engine.hasCredentials) engine.reconnect()
                     }
                 }
             }

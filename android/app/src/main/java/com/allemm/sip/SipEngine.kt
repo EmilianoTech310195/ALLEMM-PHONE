@@ -61,6 +61,10 @@ class SipEngine(@Volatile var settings: EngineSettings, private val listener: (S
         var logLevel: Int = 3,
         var sessionTimers: Boolean = false,
         var autoFallbackTcp: Boolean = true,
+        var displayName: String = "",
+        var authUser: String = "",
+        var outboundProxy: String = "",
+        var tlsVerify: Boolean = false,
     )
 
     // ---------------------------------------------------------------- hilo
@@ -179,7 +183,7 @@ class SipEngine(@Volatile var settings: EngineSettings, private val listener: (S
         )) {
             val t = TransportConfig()
             t.port = 0
-            if (name == "tls") t.tlsConfig.verifyServer = false
+            if (name == "tls") t.tlsConfig.verifyServer = s.tlsVerify
             try {
                 e.transportCreate(kind, t)
                 transports[name] = true
@@ -188,7 +192,10 @@ class SipEngine(@Volatile var settings: EngineSettings, private val listener: (S
                 Log.w("Transporte ${name.uppercase()} no disponible: ${ex.message}")
             }
         }
-        if (transports[s.transport.lowercase()] != true) error("El transporte ${s.transport.uppercase()} no está disponible")
+        if (transports[s.transport.lowercase()] != true) {
+            Log.w("El transporte ${s.transport.uppercase()} no está disponible en esta versión; se usa UDP")
+            s.transport = "udp"
+        }
         e.libStart()
         applyCodecs()
         engineVersion = e.libVersion().full
@@ -242,7 +249,33 @@ class SipEngine(@Volatile var settings: EngineSettings, private val listener: (S
         run { registerJob() }
     }
 
-    fun reconnect() { if (extension.isNotEmpty()) run { registerJob() } }
+    fun reconnect() { if (extension.isNotEmpty()) { fallbackDone = false; run { registerJob() } } }
+
+    val hasCredentials: Boolean get() = extension.isNotEmpty() && password.isNotEmpty()
+
+    fun availableTransports(): Map<String, Boolean> =
+        if (transports.isEmpty()) mapOf("udp" to true, "tcp" to true, "tls" to false) else HashMap(transports)
+
+    /**
+     * Aplica ajustes nuevos. restart: rearma PJSIP (STUN, TLS, logs, códecs);
+     * reregister: rehace la cuenta. "busy" si hay llamada (se aplica después).
+     */
+    fun reconfigure(newSettings: EngineSettings, restart: Boolean, reregister: Boolean): String {
+        if ((restart || reregister) && inCall) { settings = newSettings; return "busy" }
+        val had = hasCredentials
+        settings = newSettings
+        if (restart && running) {
+            val ext = extension; val pw = password
+            stop(); start()
+            if (had) register(ext, pw)
+            return "restarted"
+        }
+        if (reregister && had && running) { reconnect(); return "reregistered" }
+        return "saved"
+    }
+
+    /** Desregistrar sin olvidar las credenciales (p. ej. sin WiFi y con datos móviles desactivados). */
+    fun pause() { if (running) run { unregisterJob() } }
 
     fun unregister() { run { unregisterJob() } }
 
@@ -254,7 +287,7 @@ class SipEngine(@Volatile var settings: EngineSettings, private val listener: (S
             return
         }
         val cfg = AccountConfig()
-        cfg.idUri = "sip:$extension@${domain()}"
+        cfg.idUri = accountIdUri(extension, domain(), s.displayName)
         cfg.regConfig.registrarUri = serverUri()
         cfg.regConfig.registerOnAdd = true
         cfg.regConfig.timeoutSec = s.registerExpires.toLong()
@@ -262,8 +295,10 @@ class SipEngine(@Volatile var settings: EngineSettings, private val listener: (S
         cfg.regConfig.firstRetryIntervalSec = maxOf(1, s.retryDelay / 2).toLong()
         cfg.regConfig.randomRetryIntervalSec = 2
         cfg.regConfig.dropCallsOnFail = false
-        cfg.sipConfig.authCreds.add(AuthCredInfo("digest", "*", extension, 0, password))
-        if (!s.transport.equals("udp", true)) cfg.sipConfig.proxies.add(serverUri() + ";lr")
+        val authUser = s.authUser.trim().ifEmpty { extension }
+        cfg.sipConfig.authCreds.add(AuthCredInfo("digest", "*", authUser, 0, password))
+        val route = proxyRoute(s.outboundProxy, s.transport, serverUri())
+        if (route.isNotEmpty()) cfg.sipConfig.proxies.add(route)
         cfg.natConfig.contactRewriteUse = 1
         cfg.natConfig.viaRewriteUse = 1
         cfg.natConfig.sdpNatRewriteUse = 1
@@ -652,6 +687,23 @@ class SipEngine(@Volatile var settings: EngineSettings, private val listener: (S
         private val URI_USER = Regex("sips?:([^@;>]+)")
         private val DISPLAY = Regex("^\\s*\"?([^\"<]*?)\"?\\s*<")
         private val ELSEWHERE = Regex("completed elsewhere|answered elsewhere|cause=200", RegexOption.IGNORE_CASE)
+
+        fun accountIdUri(ext: String, domain: String, displayName: String): String {
+            val name = displayName.replace("\"", "").replace("\\", "").trim()
+            val uri = "sip:$ext@$domain"
+            return if (name.isEmpty()) uri else "\"$name\" <$uri>"
+        }
+
+        fun proxyRoute(outboundProxy: String, transport: String, serverUri: String): String {
+            val t = transport.lowercase()
+            var p = outboundProxy.trim()
+            if (p.isNotEmpty()) {
+                if (!p.lowercase().startsWith("sip:") && !p.lowercase().startsWith("sips:")) p = "sip:$p"
+                if (t != "udp" && !p.lowercase().contains(";transport=")) p += ";transport=$t"
+                return "$p;lr"
+            }
+            return if (t == "udp") "" else "$serverUri;lr"
+        }
 
         fun uriUser(uri: String?): String = URI_USER.find(uri ?: "")?.groupValues?.get(1) ?: (uri ?: "").trim()
         fun uriDisplay(uri: String?): String = DISPLAY.find(uri ?: "")?.groupValues?.get(1)?.trim() ?: ""

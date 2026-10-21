@@ -166,22 +166,70 @@ class JsApi:
             "engineError": SipEngine.import_error(),
             "dataDir": str(config.data_dir()),
             "platform": sys.platform,
+            "transports": self._transports(),
         }
+
+    def _transports(self) -> dict:
+        try:
+            if self._engine.available() and getattr(self._engine, "_running", False):
+                return self._engine.available_transports()
+        except Exception:  # noqa: BLE001
+            pass
+        return {"udp": True, "tcp": True, "tls": False}
 
     def get_settings(self) -> dict:
         return dict(self._settings)
 
     def save_settings(self, values: dict) -> dict:
+        """Guarda y APLICA de inmediato: nada de "funciona al reiniciar"."""
+        applied = "saved"
         with self._lock:
+            before = dict(self._settings)
             self._settings = config.save_settings(values or {})
-            self._engine.settings = config.engine_settings(self._settings)
-            if self._engine.available():
+            changed = config.changed_keys(before, self._settings)
+            if "debug" in changed:
+                config.setup_logging(bool(self._settings.get("debug")))
+            restart = any(k in changed for k in config.RESTART_KEYS)
+            rereg = any(k in changed for k in config.REREGISTER_KEYS)
+            new_engine_settings = config.engine_settings(self._settings)
+            if self._engine.available() and getattr(self._engine, "_running", False):
                 try:
-                    self._engine.set_audio_devices(self._settings.get("captureDevice", ""),
-                                                   self._settings.get("playbackDevice", ""))
+                    applied = self._engine.reconfigure(new_engine_settings, restart=restart, reregister=rereg)
                 except Exception:  # noqa: BLE001
-                    log.exception("No se pudieron aplicar los dispositivos de audio")
-        return dict(self._settings)
+                    log.exception("No se pudieron aplicar los ajustes al motor")
+                    applied = "error"
+                if {"captureDevice", "playbackDevice"} & changed or applied == "restarted":
+                    try:
+                        self._engine.set_audio_devices(self._settings.get("captureDevice", ""),
+                                                       self._settings.get("playbackDevice", ""))
+                    except Exception:  # noqa: BLE001
+                        log.exception("No se pudieron aplicar los dispositivos de audio")
+            else:
+                self._engine.settings = new_engine_settings
+            log.info("Ajustes guardados (%s): %s", applied, ", ".join(sorted(changed)) or "sin cambios")
+        out = dict(self._settings)
+        out["_applied"] = applied
+        return out
+
+    def monitor_report(self, payload: dict) -> bool:
+        """Panel de monitoreo: el POST lo hace Python (la página no puede por CORS)."""
+        url = str(self._settings.get("monitorUrl") or "").strip()
+        if not url.lower().startswith(("http://", "https://")):
+            return False
+        body = dict(payload or {})
+        body["token"] = self._settings.get("monitorToken", "")
+
+        def send():
+            import urllib.request
+            try:
+                req = urllib.request.Request(url, data=json.dumps(body).encode("utf-8"),
+                                             headers={"Content-Type": "application/json"}, method="POST")
+                with urllib.request.urlopen(req, timeout=8) as r:
+                    log.info("Monitor ← %s %s", body.get("type"), r.status)
+            except Exception as exc:  # noqa: BLE001
+                log.warning("Monitor: no se pudo enviar %s: %s", body.get("type"), exc)
+        threading.Thread(target=send, name="monitor", daemon=True).start()
+        return True
 
     def list_audio_devices(self) -> list:
         try:

@@ -112,10 +112,8 @@ const UvacSIP = {
             .then(function (res) {
                 if (res && res.ok === false) {
                     uvacError('Registro rechazado por el motor:', res.error);
-                    if (res.cause === 'BAD_SERVER') {
-                        UvacAlerts.setHealth('error');
-                        if (self.onRegistrationFailed) self.onRegistrationFailed('Connection Error');
-                    }
+                    UvacAlerts.setHealth('error');
+                    if (self.onRegistrationFailed) self.onRegistrationFailed('Connection Error');
                 }
             })
             .catch(function (err) {
@@ -368,6 +366,13 @@ AllemmBridge.on('transport_fallback', function (d) {
     uvacLog('⚠️ ' + String(d.from).toUpperCase() + ' sin respuesta; probando ' + String(d.to).toUpperCase());
     UvacAlerts.setHealth('warning');
     try { if (typeof UvacApp !== 'undefined') UvacApp._showLoginStatus('Sin respuesta por UDP, probando TCP...', 'success'); } catch (e) {}
+});
+
+AllemmBridge.on('network_blocked', function () {
+    // Android: sin WiFi y "Red móvil" desactivada en Ajustes.
+    setTimeout(function () {
+        UvacAlerts.show('NETWORK_BLOCKED', { autoRetry: false, retryCallback: function () { UvacSIP.reconnect(); } });
+    }, 1300);
 });
 
 AllemmBridge.on('transfer_status', function (d) {

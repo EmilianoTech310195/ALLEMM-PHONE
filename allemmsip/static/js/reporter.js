@@ -61,6 +61,14 @@
             // seguía corriendo y revivía la extensión aunque ya no estuviera.)
             if (type === 'desconectado') this.stopHeartbeat();
             var self = this;
+            var payload = { ext: this.ext, type: type, number: number || '', dur: dur || 0, dir: dir || '' };
+            // En la app (escritorio y Android) el envío lo hace el lado nativo:
+            // desde la página el navegador interno lo bloquearía por CORS.
+            var api = window.pywebview && window.pywebview.api;
+            if (api && typeof api.monitor_report === 'function') {
+                Promise.resolve(api.monitor_report(payload)).catch(function () {});
+                return;
+            }
             try {
                 fetch(this.url, {
                     method: 'POST',
@@ -92,6 +100,11 @@
     window.addEventListener('pagehide', function () {
         try {
             if (!UvacReporter.ext || !UvacReporter.url) return;
+            var api = window.pywebview && window.pywebview.api;
+            if (api && typeof api.monitor_report === 'function') {
+                api.monitor_report({ ext: UvacReporter.ext, type: 'desconectado' });
+                return;
+            }
             var body = JSON.stringify({ token: UvacReporter.token, ext: UvacReporter.ext, type: 'desconectado' });
             if (navigator.sendBeacon) {
                 navigator.sendBeacon(UvacReporter.url, new Blob([body], { type: 'application/json' }));

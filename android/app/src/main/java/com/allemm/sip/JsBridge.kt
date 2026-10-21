@@ -35,14 +35,16 @@ class JsBridge(private val activity: MainActivity) {
 
     @JavascriptInterface fun app_info(): String = ok(mapOf(
         "name" to "ALLEMM SIP", "version" to BuildConfig.VERSION_NAME, "engineAvailable" to true,
-        "engineError" to "", "dataDir" to activity.filesDir.absolutePath, "platform" to "android"))
+        "engineError" to "", "dataDir" to activity.filesDir.absolutePath, "platform" to "android",
+        "transports" to (SipService.instance?.takeIf { it.engineReady.isDone }?.engine?.availableTransports()
+            ?: mapOf("udp" to true, "tcp" to true, "tls" to false))))
 
     @JavascriptInterface fun get_settings(): String = Settings.load(activity).toString()
 
     @JavascriptInterface fun save_settings(json: String): String = guard(null) {
         val s = Settings.save(activity, JSONObject(json))
-        SipService.instance?.applySettings(s)
-        s
+        val applied = SipService.instance?.applySettings(s) ?: "saved"
+        JSONObject(s.toString()).put("_applied", applied)
     }.let { if (it == "null") Settings.load(activity).toString() else it }
 
     @JavascriptInterface fun list_audio_devices(): String = "[]"   // Android elige auricular/altavoz/bluetooth
@@ -64,6 +66,11 @@ class JsBridge(private val activity: MainActivity) {
         }
         val svc = service()
         svc.applySettings(Settings.load(activity))
+        if (!svc.networkAllowed()) {
+            activity.dispatch("network_blocked", emptyMap())
+            return@guard mapOf("ok" to false, "cause" to "NETWORK_BLOCKED",
+                "error" to "Sin WiFi y los datos móviles están desactivados en Ajustes")
+        }
         svc.engine.register(ext, pass)
         activity.requestBatteryExemptionOnce()
         mapOf("ok" to true)
@@ -94,6 +101,28 @@ class JsBridge(private val activity: MainActivity) {
         val want = on == "true"
         activity.runOnUiThread { SipService.instance?.setSpeaker(want) }
         want
+    }
+
+    /** Panel de monitoreo: el POST lo hace Android (desde la página lo bloquea CORS). */
+    @JavascriptInterface fun monitor_report(json: String): String = guard(false) {
+        val s = Settings.load(activity)
+        val url = s.optString("monitorUrl").trim()
+        if (!url.startsWith("http://") && !url.startsWith("https://")) return@guard false
+        val body = JSONObject(json).put("token", s.optString("monitorToken"))
+        Thread {
+            try {
+                val c = java.net.URL(url).openConnection() as java.net.HttpURLConnection
+                c.requestMethod = "POST"; c.doOutput = true
+                c.connectTimeout = 8000; c.readTimeout = 8000
+                c.setRequestProperty("Content-Type", "application/json")
+                c.outputStream.use { it.write(body.toString().toByteArray()) }
+                Log.app("Monitor ← ${body.optString("type")} ${c.responseCode}")
+                c.disconnect()
+            } catch (t: Throwable) {
+                Log.w("Monitor: no se pudo enviar ${body.optString("type")}: ${t.message}")
+            }
+        }.start()
+        true
     }
 
     /** "Logs" en Ajustes: compartir allemmsip.log (correo, WhatsApp, Drive…). */

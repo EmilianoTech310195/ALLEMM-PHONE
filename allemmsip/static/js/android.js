@@ -16,7 +16,7 @@
     var METHODS = ['app_info', 'get_settings', 'save_settings', 'list_audio_devices', 'engine_status',
         'get_launch_number', 'sip_register', 'sip_unregister', 'sip_reconnect', 'sip_network_changed',
         'sip_call', 'sip_answer', 'sip_hangup', 'sip_toggle_mute', 'sip_hold', 'sip_transfer', 'sip_dtmf',
-        'open_log_folder', 'set_speaker'];
+        'open_log_folder', 'set_speaker', 'monitor_report'];
 
     function toArg(v) {
         if (v === undefined || v === null) return '';

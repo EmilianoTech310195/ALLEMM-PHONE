@@ -78,6 +78,10 @@ class EngineSettings:
     local_port: int = 0               # 0 = puerto local aleatorio
     session_timers: bool = False
     auto_fallback_tcp: bool = True    # si UDP no responde, reintentar por TCP
+    display_name: str = ""            # "Mostrar como" (nombre en el identificador)
+    auth_user: str = ""               # usuario de autenticación ("" = la extensión)
+    outbound_proxy: str = ""          # proxy saliente host[:puerto] ("" = ninguno)
+    tls_verify: bool = False          # verificar el certificado del servidor TLS
 
 
 # --------------------------------------------------------------------------
@@ -150,6 +154,27 @@ def taken_by_colleague(code: int, raw_message: str, *, incoming: bool, local_han
     if _REASON_ELSEWHERE_RE.search(raw_message or ""):
         return True
     return code == 487
+
+
+def account_id_uri(extension: str, domain: str, display_name: str = "") -> str:
+    """Identidad SIP; con nombre: '"Recepción" <sip:2025@pbx:49999>'."""
+    name = (display_name or "").replace('"', "").replace("\\", "").strip()
+    uri = f"sip:{extension}@{domain}"
+    return f'"{name}" <{uri}>' if name else uri
+
+
+def proxy_route(outbound_proxy: str, transport: str, server_uri: str) -> str:
+    """Ruta (proxy) de la cuenta: el proxy saliente si hay; si no, el servidor
+    cuando el transporte no es UDP (para forzar TCP/TLS). "" = sin proxy."""
+    t = (transport or "udp").lower()
+    p = (outbound_proxy or "").strip()
+    if p:
+        if not p.lower().startswith(("sip:", "sips:")):
+            p = "sip:" + p
+        if t != "udp" and ";transport=" not in p.lower():
+            p += f";transport={t}"
+        return p + ";lr"
+    return "" if t == "udp" else server_uri + ";lr"
 
 
 def pick_device(devices: list[dict], wanted_name: str, kind: str) -> int:
@@ -376,7 +401,7 @@ class SipEngine:
             tcfg = pj.TransportConfig()
             tcfg.port = int(s.local_port)
             if kind == pj.PJSIP_TRANSPORT_TLS:
-                tcfg.tlsConfig.verifyServer = False
+                tcfg.tlsConfig.verifyServer = bool(s.tls_verify)
             try:
                 self._ep.transportCreate(kind, tcfg)
                 self._transports[name] = True
@@ -384,7 +409,8 @@ class SipEngine:
                 self._transports[name] = False
                 log.warning("Transporte %s no disponible: %s", name.upper(), exc)
         if not self._transports.get(s.transport.lower()):
-            raise RuntimeError(f"El transporte {s.transport.upper()} no está disponible")
+            log.warning("El transporte %s no está disponible en esta versión; se usa UDP", s.transport.upper())
+            s.transport = "udp"
         self._ep.libStart()
         self._apply_codecs()
         self._apply_audio_devices()
@@ -482,6 +508,32 @@ class SipEngine:
         tr = "" if s.transport.lower() == "udp" else f";transport={s.transport.lower()}"
         return f"sip:{self._domain()}{tr}"
 
+    def available_transports(self) -> dict:
+        """{'udp': True, 'tcp': True, 'tls': False} según lo que compiló PJSIP."""
+        return dict(getattr(self, "_transports", {}) or {"udp": True, "tcp": True, "tls": False})
+
+    def reconfigure(self, settings: "EngineSettings", restart: bool = False, reregister: bool = False) -> str:
+        """Aplica ajustes nuevos. restart: rearma PJSIP (STUN, TLS, logs, códecs).
+        reregister: rehace la cuenta (servidor, transporte, proxy, usuario...).
+        Devuelve "busy" si hay una llamada y no se pudo aplicar ahora."""
+        if (restart or reregister) and self.in_call:
+            self.settings = settings
+            return "busy"
+        had_account = bool(self.extension and self._password)
+        self.settings = settings
+        if restart and self._running:
+            ext, pw = self.extension, self._password
+            self.stop()
+            self.start()
+            if had_account:
+                self.register(ext, pw)
+            return "restarted"
+        if reregister and had_account and self._running:
+            self._fallback_done = False
+            self._run(self._register_job)
+            return "reregistered"
+        return "saved"
+
     def register(self, extension: str, password: str) -> None:
         """Equivalente a ``UvacSIP.init(ext, pass)``."""
         self.extension = str(extension).strip()
@@ -497,7 +549,7 @@ class SipEngine:
                                                "reason": "No hay servidor SIP configurado"})
             return
         cfg = pj.AccountConfig()
-        cfg.idUri = f"sip:{self.extension}@{self._domain()}"
+        cfg.idUri = account_id_uri(self.extension, self._domain(), s.display_name)
         cfg.regConfig.registrarUri = self._server_uri()
         cfg.regConfig.registerOnAdd = True
         cfg.regConfig.timeoutSec = int(s.register_expires)
@@ -505,9 +557,11 @@ class SipEngine:
         cfg.regConfig.firstRetryIntervalSec = max(1, int(s.retry_delay) // 2)
         cfg.regConfig.randomRetryIntervalSec = 2
         cfg.regConfig.dropCallsOnFail = False
-        cfg.sipConfig.authCreds.append(pj.AuthCredInfo("digest", "*", self.extension, 0, self._password))
-        if s.transport.lower() != "udp":
-            cfg.sipConfig.proxies.append(self._server_uri() + ";lr")
+        auth_user = (s.auth_user or "").strip() or self.extension
+        cfg.sipConfig.authCreds.append(pj.AuthCredInfo("digest", "*", auth_user, 0, self._password))
+        route = proxy_route(s.outbound_proxy, s.transport, self._server_uri())
+        if route:
+            cfg.sipConfig.proxies.append(route)
         cfg.natConfig.contactRewriteUse = 1
         cfg.natConfig.viaRewriteUse = 1
         cfg.natConfig.sdpNatRewriteUse = 1

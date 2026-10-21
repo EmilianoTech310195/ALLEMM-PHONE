@@ -274,3 +274,13 @@ body {
 /* Android (APK): sin avisos de navegador; respetar la barra de estado */
 .is-android #mobileCallTip { display: none !important; }
 .is-android #settingsLogBtn::after { content: ' (compartir)'; }
+
+/* Ajustes por secciones */
+.settings-section {
+    grid-column: 1 / -1; margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--allemm-line);
+    font-family: var(--font-mono); font-size: 10.5px; letter-spacing: .2em; text-transform: uppercase; color: var(--allemm-gold);
+}
+.settings-section:first-child { margin-top: 0; padding-top: 0; border-top: 0; }
+.settings-grid select option:disabled { color: #666; }
+.dial-key .letters .ti-voicemail { font-size: 12px; color: var(--allemm-gold); }
+#settingsModal .row-hidden { display: none !important; }

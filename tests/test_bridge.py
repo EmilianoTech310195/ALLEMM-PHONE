@@ -62,6 +62,15 @@ class FakeEngine:
     def list_audio_devices(self):
         return [{"id": 0, "name": "Mic", "driver": "WASAPI", "inputCount": 1, "outputCount": 0}]
 
+    _running = True
+
+    def reconfigure(self, settings, restart=False, reregister=False):
+        self.settings = settings
+        return "restarted" if restart else "reregistered" if reregister else "saved"
+
+    def available_transports(self):
+        return {"udp": True, "tcp": True, "tls": False}
+
     def set_audio_devices(self, cap, play):
         self.calls.append(("devices", cap, play))
 
@@ -165,3 +174,16 @@ def test_api_has_no_public_non_callable_attributes(tmp_path, monkeypatch):
         if name.startswith("_"):
             continue
         assert callable(getattr(api, name)), f"atributo público no invocable en JsApi: {name}"
+
+
+def test_save_settings_reports_how_it_was_applied(tmp_path, monkeypatch):
+    api, engine, scripts = _api(tmp_path, monkeypatch)
+    calls = []
+    engine._running = True
+    engine.reconfigure = lambda st, restart=False, reregister=False: (calls.append((restart, reregister)) or
+                                                                      ("restarted" if restart else "reregistered" if reregister else "saved"))
+    assert api.save_settings({"voicemailNumber": "*97"})["_applied"] == "saved"
+    assert api.save_settings({"outboundProxy": "sbc.example.com"})["_applied"] == "reregistered"
+    assert api.save_settings({"stunEnabled": True})["_applied"] == "restarted"
+    assert calls == [(False, False), (False, True), (True, False)]
+    assert api.app_info()["transports"]["udp"] is True

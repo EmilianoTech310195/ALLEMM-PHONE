@@ -38,7 +38,15 @@ DEFAULTS: dict[str, Any] = {
     "retryDelay": 5,
     "maxRetries": 3,
     "stunEnabled": False,           # MicroSIP: "Dirección pública" Automático, sin STUN/ICE
-    "stunServers": ["stun.l.google.com:19302", "stun1.l.google.com:19302"],
+    "stunServer": "stun.l.google.com",
+    "stunPort": 19302,
+    "stunServers": ["stun.l.google.com:19302", "stun1.l.google.com:19302"],  # compatibilidad
+    "outboundProxy": "",            # proxy saliente host[:puerto]; vacío = ninguno
+    "displayName": "",              # "Mostrar como"
+    "authUser": "",                 # usuario de autenticación; vacío = la extensión
+    "voicemailNumber": "",          # mantener presionado el 1 marca este número
+    "tlsVerify": False,             # verificar certificado TLS del servidor
+    "allowMobileData": True,        # Android: registrar también con datos móviles
     "srtp": "off",                  # off | optional | mandatory (MicroSIP: "Comunicación cifrada" desactivado)
     "sessionTimers": False,
     # Audio
@@ -138,9 +146,12 @@ def _normalize(s: dict) -> dict:
         s["transport"] = "udp"
     s["dtmfMode"] = "RFC2833" if str(s.get("dtmfMode", "INFO")).upper() == "RFC2833" else "INFO"
     if s.get("srtp") not in ("off", "optional", "mandatory"):
-        s["srtp"] = "optional"
+        s["srtp"] = "off"
+    for key in ("displayName", "authUser", "outboundProxy", "voicemailNumber", "stunServer"):
+        s[key] = str(s.get(key) or "").strip()
+    s["voicemailNumber"] = "".join(ch for ch in s["voicemailNumber"] if ch.isdigit() or ch in "*#+")
     for key in ("registerExpires", "registerTimeout", "retryDelay", "maxRetries", "echoCancelMs",
-                "historyRetentionDays", "callTimeout", "pjsipLogLevel"):
+                "historyRetentionDays", "callTimeout", "pjsipLogLevel", "stunPort"):
         try:
             s[key] = int(s.get(key, DEFAULTS[key]))
         except (TypeError, ValueError):
@@ -182,6 +193,28 @@ def parse_server(text: str, default_port: int = 5060) -> tuple[str, int]:
     return host, port_n
 
 
+def stun_list(s: dict) -> list[str]:
+    """STUN configurado en Ajustes (servidor + puerto) o vacío si está apagado."""
+    if not s.get("stunEnabled"):
+        return []
+    host = str(s.get("stunServer") or "").strip()
+    if not host:
+        return list(s.get("stunServers") or [])
+    port = int(s.get("stunPort") or 3478)
+    return [f"{host}:{port}"]
+
+
+# Qué cambios exigen rearmar PJSIP y cuáles solo rehacer la cuenta (registro).
+RESTART_KEYS = ("stunEnabled", "stunServer", "stunPort", "tlsVerify", "debug", "pjsipLogLevel",
+                "echoCancelMs", "audioCodecs")
+REREGISTER_KEYS = ("sipServer", "sipPort", "transport", "outboundProxy", "displayName", "authUser",
+                   "registerExpires", "srtp", "sessionTimers", "autoTransportFallback")
+
+
+def changed_keys(old: dict, new: dict) -> set[str]:
+    return {k for k in new if old.get(k) != new.get(k)}
+
+
 def engine_settings(s: dict) -> EngineSettings:
     return EngineSettings(
         sip_server=s["sipServer"],
@@ -190,7 +223,7 @@ def engine_settings(s: dict) -> EngineSettings:
         register_expires=int(s["registerExpires"]),
         retry_delay=int(s["retryDelay"]),
         register_timeout=int(s["registerTimeout"]),
-        stun_servers=list(s["stunServers"]) if s.get("stunEnabled", True) else [],
+        stun_servers=stun_list(s),
         codecs=list(s["audioCodecs"]),
         dtmf_mode=s["dtmfMode"],
         srtp=s["srtp"],
@@ -202,6 +235,10 @@ def engine_settings(s: dict) -> EngineSettings:
         log_level=5 if s.get("debug") else int(s.get("pjsipLogLevel", 3)),
         session_timers=bool(s.get("sessionTimers", False)),
         auto_fallback_tcp=bool(s.get("autoTransportFallback", True)),
+        display_name=s.get("displayName", ""),
+        auth_user=s.get("authUser", ""),
+        outbound_proxy=s.get("outboundProxy", ""),
+        tls_verify=bool(s.get("tlsVerify", False)),
     )
 
 

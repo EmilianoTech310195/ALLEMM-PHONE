@@ -25,6 +25,10 @@ const AllemmSettings = {
             AllemmBridge.call('open_log_folder').catch(function () {});
         });
         modal.addEventListener('click', function (e) { if (e.target === modal) self.close(); });
+        ['setTransport', 'setStun'].forEach(function (id) {
+            document.getElementById(id).addEventListener('change', function () { self._refreshRows(); });
+        });
+        this._setupVoicemailKey();
 
         this._whenReady(function () { self._afterBridgeReady(); });
     },
@@ -49,6 +53,7 @@ const AllemmSettings = {
         }).catch(function (err) { uvacError('get_settings falló:', err); });
 
         AllemmBridge.call('app_info').then(function (info) {
+            self.info = info || {};
             const v = document.querySelector('.footer .version');
             if (v) v.textContent = '· ' + info.name + ' v' + info.version + (info.platform === 'android' ? ' · Android' : ' · escritorio');
             if (!info.engineAvailable) {
@@ -69,7 +74,43 @@ const AllemmSettings = {
         }).catch(function () {});
     },
 
+    /** Buzón de voz: mantener presionado el 1 marca el número configurado (como en un teléfono). */
+    _setupVoicemailKey: function () {
+        const self = this;
+        const key = document.querySelector('#keypad .dial-key[data-key="1"]');
+        if (!key) return;
+        let timer = null, fired = false;
+        const start = function () {
+            fired = false;
+            clearTimeout(timer);
+            timer = setTimeout(function () {
+                const n = (self.current && self.current.voicemailNumber) || '';
+                if (!n) return;
+                fired = true;
+                if (navigator.vibrate) navigator.vibrate(40);
+                const d = document.getElementById('numberDisplay');
+                if (d) d.value = n;
+                if (typeof UvacApp !== 'undefined' && !UvacApp.isInCall) UvacApp._makeCall();
+            }, 700);
+        };
+        const stop = function () { clearTimeout(timer); };
+        key.addEventListener('pointerdown', start);
+        key.addEventListener('pointerup', stop);
+        key.addEventListener('pointerleave', stop);
+        key.addEventListener('contextmenu', function (e) { e.preventDefault(); });
+        // Si fue pulsación larga, que no se agregue también un "1" al número.
+        key.addEventListener('click', function (e) {
+            if (fired) { e.stopImmediatePropagation(); e.preventDefault(); fired = false; }
+        }, true);
+    },
+
+    _markVoicemail: function (s) {
+        const letters = document.querySelector('#keypad .dial-key[data-key="1"] .letters');
+        if (letters) letters.innerHTML = (s && s.voicemailNumber) ? '<i class="ti ti-voicemail"></i>' : '';
+    },
+
     _applyToUI: function (s) {
+        this._markVoicemail(s);
         // Datos de marca y de comportamiento que antes vivían en config.js
         if (typeof UVAC_CONFIG !== 'undefined') {
             UVAC_CONFIG.sipServer = s.sipServer || UVAC_CONFIG.sipServer;
@@ -103,6 +144,7 @@ const AllemmSettings = {
         const modal = document.getElementById('settingsModal');
         modal.classList.remove('hidden');
         this._status('', '');
+        AllemmBridge.call('app_info').then(function (info) { self.info = info || self.info; self._refreshRows(); }).catch(function () {});
         AllemmBridge.call('get_settings').then(function (s) {
             self.current = s;
             self._fill(s);
@@ -119,20 +161,54 @@ const AllemmSettings = {
     },
 
     _fill: function (s) {
-        document.getElementById('setServer').value = s.sipServer || '';
-        document.getElementById('setPort').value = s.sipPort || 5060;
-        document.getElementById('setTransport').value = s.transport || 'udp';
-        document.getElementById('setDtmf').value = s.dtmfMode || 'INFO';
-        document.getElementById('setSrtp').value = s.srtp || 'optional';
-        document.getElementById('setStun').checked = s.stunEnabled !== false;
-        document.getElementById('setFallback').checked = s.autoTransportFallback !== false;
-        document.getElementById('setExpires').value = s.registerExpires || 600;
-        document.getElementById('setMonitorUrl').value = s.monitorUrl || '';
-        document.getElementById('setMonitorToken').value = s.monitorToken || '';
-        document.getElementById('setDebug').checked = !!s.debug;
+        const v = function (id, val) { document.getElementById(id).value = val; };
+        const c = function (id, val) { document.getElementById(id).checked = !!val; };
+        v('setServer', s.sipServer || '');
+        v('setPort', s.sipPort || 5060);
+        v('setDisplayName', s.displayName || '');
+        v('setAuthUser', s.authUser || '');
+        v('setProxy', s.outboundProxy || '');
+        v('setVoicemail', s.voicemailNumber || '');
+        v('setExpires', s.registerExpires || 300);
+        v('setTransport', s.transport || 'udp');
+        c('setFallback', s.autoTransportFallback !== false);
+        c('setTlsVerify', s.tlsVerify);
+        c('setStun', s.stunEnabled);
+        v('setStunServer', s.stunServer || 'stun.l.google.com');
+        v('setStunPort', s.stunPort || 19302);
+        c('setMobileData', s.allowMobileData !== false);
+        v('setDtmf', s.dtmfMode || 'INFO');
+        v('setSrtp', s.srtp || 'off');
+        c('setDebug', s.debug);
+        v('setMonitorUrl', s.monitorUrl || '');
+        v('setMonitorToken', s.monitorToken || '');
+        this._refreshRows();
+    },
+
+    /** Mostrar solo lo que aplica: nada de opciones que no hacen nada. */
+    _refreshRows: function () {
+        const info = this.info || {};
+        const tr = info.transports || { udp: true, tcp: true, tls: false };
+        const sel = document.getElementById('setTransport');
+        Array.prototype.forEach.call(sel.options, function (o) {
+            const ok = tr[o.value] !== false;
+            o.disabled = !ok;
+            if (o.value === 'tls') o.textContent = ok ? 'TLS (cifrado)' : 'TLS (no disponible en esta versión)';
+        });
+        if (sel.selectedOptions[0] && sel.selectedOptions[0].disabled) sel.value = 'udp';
+        const show = function (cls, on) {
+            document.querySelectorAll('#settingsModal .' + cls).forEach(function (el) { el.classList.toggle('row-hidden', !on); });
+        };
+        show('row-fallback', sel.value === 'udp' && tr.tcp !== false);
+        show('row-tls', sel.value === 'tls');
+        show('row-stun', document.getElementById('setStun').checked);
+        show('row-android', info.platform === 'android');
+        show('row-desktop', info.platform !== 'android');
     },
 
     _fillDevices: function (devices) {
+        if (!Array.isArray(devices)) devices = [];
+        if ((this.info || {}).platform === 'android') return;   // Android elige auricular/altavoz solo
         const mic = document.getElementById('setMic');
         const spk = document.getElementById('setSpeaker');
         const cur = this.current || {};
@@ -155,30 +231,51 @@ const AllemmSettings = {
 
     save: function () {
         const self = this;
+        const val = function (id) { return document.getElementById(id).value.trim(); };
+        const chk = function (id) { return document.getElementById(id).checked; };
         const values = {
-            sipServer: document.getElementById('setServer').value.trim(),
-            sipPort: parseInt(document.getElementById('setPort').value, 10) || 5060,
+            sipServer: val('setServer'),
+            sipPort: parseInt(val('setPort'), 10) || 5060,
+            displayName: val('setDisplayName'),
+            authUser: val('setAuthUser'),
+            outboundProxy: val('setProxy'),
+            voicemailNumber: val('setVoicemail'),
+            registerExpires: parseInt(val('setExpires'), 10) || 300,
             transport: document.getElementById('setTransport').value,
+            autoTransportFallback: chk('setFallback'),
+            tlsVerify: chk('setTlsVerify'),
+            stunEnabled: chk('setStun'),
+            stunServer: val('setStunServer'),
+            stunPort: parseInt(val('setStunPort'), 10) || 3478,
+            allowMobileData: chk('setMobileData'),
             dtmfMode: document.getElementById('setDtmf').value,
             srtp: document.getElementById('setSrtp').value,
-            stunEnabled: document.getElementById('setStun').checked,
-            autoTransportFallback: document.getElementById('setFallback').checked,
-            registerExpires: parseInt(document.getElementById('setExpires').value, 10) || 600,
-            captureDevice: document.getElementById('setMic').value,
-            playbackDevice: document.getElementById('setSpeaker').value,
-            monitorUrl: document.getElementById('setMonitorUrl').value.trim(),
-            monitorToken: document.getElementById('setMonitorToken').value.trim(),
-            debug: document.getElementById('setDebug').checked
+            debug: chk('setDebug'),
+            monitorUrl: val('setMonitorUrl'),
+            monitorToken: val('setMonitorToken')
         };
-        if (!values.sipServer) {
-            this._status('El servidor SIP es obligatorio.', 'error');
-            return;
+        if ((self.info || {}).platform !== 'android') {
+            values.captureDevice = document.getElementById('setMic').value;
+            values.playbackDevice = document.getElementById('setSpeaker').value;
         }
+        if (!values.sipServer) { this._status('El servidor SIP es obligatorio.', 'error'); return; }
+        if (values.stunEnabled && !values.stunServer) { this._status('Escribe el servidor STUN o desactívalo.', 'error'); return; }
+        if (values.monitorUrl && !/^https?:\/\//i.test(values.monitorUrl)) {
+            this._status('La URL del panel debe empezar con http:// o https://', 'error'); return;
+        }
+        const msgs = {
+            restarted: 'Guardado y aplicado: el motor se reinició y volvió a registrar.',
+            reregistered: 'Guardado y aplicado: se volvió a registrar con los datos nuevos.',
+            busy: 'Guardado. Se aplicará al terminar la llamada en curso.',
+            error: 'Guardado, pero no se pudo aplicar al motor. Revisa el log.',
+            saved: 'Guardado y aplicado.'
+        };
         AllemmBridge.call('save_settings', values).then(function (s) {
             self.current = s;
             self._applyToUI(s);
-            self._status('Guardado. Si cambiaste servidor o transporte, vuelve a conectar.', 'success');
-            setTimeout(function () { self.close(); }, 900);
+            const applied = (s && s._applied) || 'saved';
+            self._status(msgs[applied] || msgs.saved, applied === 'error' ? 'error' : 'success');
+            if (applied !== 'error') setTimeout(function () { self.close(); }, 1400);
         }).catch(function (err) {
             self._status('No se pudo guardar: ' + err.message, 'error');
         });

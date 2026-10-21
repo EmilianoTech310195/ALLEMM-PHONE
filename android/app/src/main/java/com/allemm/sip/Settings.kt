@@ -24,6 +24,14 @@ object Settings {
         put("retryDelay", 5)
         put("maxRetries", 3)
         put("stunEnabled", false)
+        put("stunServer", "stun.l.google.com")
+        put("stunPort", 19302)
+        put("outboundProxy", "")
+        put("displayName", "")
+        put("authUser", "")
+        put("voicemailNumber", "")
+        put("tlsVerify", false)
+        put("allowMobileData", true)
         put("stunServers", JSONArray(listOf("stun.l.google.com:19302", "stun1.l.google.com:19302")))
         put("srtp", "off")
         put("sessionTimers", false)
@@ -72,8 +80,10 @@ object Settings {
         s.put("transport", if (t in listOf("udp", "tcp", "tls")) t else "udp")
         s.put("dtmfMode", if (s.optString("dtmfMode").equals("RFC2833", true)) "RFC2833" else "INFO")
         if (s.optString("srtp") !in listOf("off", "optional", "mandatory")) s.put("srtp", "off")
+        for (k in listOf("displayName", "authUser", "outboundProxy", "stunServer")) s.put(k, s.optString(k).trim())
+        s.put("voicemailNumber", s.optString("voicemailNumber").filter { it.isDigit() || it in "*#+" })
         for (k in listOf("registerExpires", "registerTimeout", "retryDelay", "maxRetries", "echoCancelMs",
-                         "historyRetentionDays", "callTimeout", "pjsipLogLevel")) {
+                         "historyRetentionDays", "callTimeout", "pjsipLogLevel", "stunPort")) {
             s.put(k, s.optString(k).toIntOrNull() ?: DEFAULTS.getInt(k))
         }
     }
@@ -85,7 +95,7 @@ object Settings {
         registerExpires = s.optInt("registerExpires", 300),
         retryDelay = s.optInt("retryDelay", 5),
         registerTimeout = s.optInt("registerTimeout", 15),
-        stunServers = if (s.optBoolean("stunEnabled")) s.optJSONArray("stunServers").toList() else emptyList(),
+        stunServers = stunList(s),
         codecs = s.optJSONArray("audioCodecs").toList().ifEmpty { listOf("PCMU", "PCMA") },
         dtmfMode = s.optString("dtmfMode", "INFO"),
         srtp = s.optString("srtp", "off"),
@@ -94,7 +104,26 @@ object Settings {
         logLevel = if (s.optBoolean("debug")) 5 else s.optInt("pjsipLogLevel", 3),
         sessionTimers = s.optBoolean("sessionTimers"),
         autoFallbackTcp = s.optBoolean("autoTransportFallback", true),
+        displayName = s.optString("displayName"),
+        authUser = s.optString("authUser"),
+        outboundProxy = s.optString("outboundProxy"),
+        tlsVerify = s.optBoolean("tlsVerify"),
     )
+
+    private fun stunList(s: JSONObject): List<String> {
+        if (!s.optBoolean("stunEnabled")) return emptyList()
+        val host = s.optString("stunServer").trim()
+        if (host.isEmpty()) return s.optJSONArray("stunServers").toList()
+        return listOf("$host:${s.optInt("stunPort", 3478)}")
+    }
+
+    /** Cambios que exigen rearmar PJSIP y los que solo rehacen la cuenta (igual que config.py). */
+    val RESTART_KEYS = setOf("stunEnabled", "stunServer", "stunPort", "tlsVerify", "debug", "pjsipLogLevel", "echoCancelMs", "audioCodecs")
+    val REREGISTER_KEYS = setOf("sipServer", "sipPort", "transport", "outboundProxy", "displayName", "authUser",
+                                "registerExpires", "srtp", "sessionTimers", "autoTransportFallback")
+
+    fun changedKeys(old: JSONObject, new: JSONObject): Set<String> =
+        new.keys().asSequence().filter { old.opt(it)?.toString() != new.opt(it)?.toString() }.toSet()
 
     private fun JSONArray?.toList(): List<String> =
         if (this == null) emptyList() else (0 until length()).map { optString(it) }.filter { it.isNotBlank() }

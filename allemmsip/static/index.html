@@ -256,27 +256,63 @@
         <div class="modal-content settings-modal-content">
             <h3><i class="ti ti-settings"></i> Ajustes</h3>
             <div class="settings-grid">
-                <label for="setServer">Servidor SIP (PBX)</label>
-                <input type="text" id="setServer" placeholder="pbx.midominio.com" autocomplete="off">
+                <div class="settings-section">Cuenta</div>
+
+                <label for="setServer">Servidor SIP (dominio)</label>
+                <input type="text" id="setServer" placeholder="pbx.midominio.com" autocomplete="off" spellcheck="false">
 
                 <label for="setPort">Puerto</label>
                 <input type="number" id="setPort" min="1" max="65535" placeholder="5060">
 
-                <label for="setTransport">Transporte</label>
+                <label for="setDisplayName">Mostrar como</label>
+                <input type="text" id="setDisplayName" placeholder="[la extensión es el predeterminado]" autocomplete="off">
+
+                <label for="setAuthUser">Nombre de autenticación</label>
+                <input type="text" id="setAuthUser" placeholder="[la extensión es el predeterminado]" autocomplete="off" spellcheck="false">
+
+                <label for="setProxy">Proxy saliente</label>
+                <input type="text" id="setProxy" placeholder="[ninguno: se usa el dominio]" autocomplete="off" spellcheck="false">
+
+                <label for="setVoicemail">Buzón de voz</label>
+                <input type="text" id="setVoicemail" placeholder="Ej. *97 (mantén presionado el 1)" autocomplete="off" inputmode="tel">
+
+                <label for="setExpires">Registro cada (seg)</label>
+                <input type="number" id="setExpires" min="60" max="3600" placeholder="300">
+
+                <div class="settings-section">Red</div>
+
+                <label for="setTransport">Protocolo de transporte</label>
                 <select id="setTransport">
                     <option value="udp">UDP (recomendado)</option>
                     <option value="tcp">TCP</option>
                     <option value="tls">TLS (cifrado)</option>
                 </select>
 
-                <label for="setFallback">Si UDP no responde</label>
-                <label class="checkbox-label"><input type="checkbox" id="setFallback"> <span>Cambiar a TCP automáticamente</span></label>
+                <label for="setFallback" class="row-fallback">Si UDP no responde</label>
+                <label class="checkbox-label row-fallback"><input type="checkbox" id="setFallback"> <span>Cambiar a TCP automáticamente</span></label>
 
-                <label for="setMic">Micrófono</label>
-                <select id="setMic"><option value="">Predeterminado de Windows</option></select>
+                <label for="setTlsVerify" class="row-tls">Certificados TLS</label>
+                <label class="checkbox-label row-tls"><input type="checkbox" id="setTlsVerify"> <span>Verificar el certificado del servidor</span></label>
 
-                <label for="setSpeaker">Altavoz / audífonos</label>
-                <select id="setSpeaker"><option value="">Predeterminado de Windows</option></select>
+                <label for="setStun">STUN</label>
+                <label class="checkbox-label"><input type="checkbox" id="setStun"> <span>Habilitar STUN</span></label>
+
+                <label for="setStunServer" class="row-stun">Servidor STUN</label>
+                <input type="text" id="setStunServer" class="row-stun" placeholder="stun.l.google.com" autocomplete="off" spellcheck="false">
+
+                <label for="setStunPort" class="row-stun">Puerto STUN</label>
+                <input type="number" id="setStunPort" class="row-stun" min="1" max="65535" placeholder="3478">
+
+                <label for="setMobileData" class="row-android">Red móvil</label>
+                <label class="checkbox-label row-android"><input type="checkbox" id="setMobileData"> <span>Usar datos móviles cuando no hay WiFi</span></label>
+
+                <div class="settings-section">Audio</div>
+
+                <label for="setMic" class="row-desktop">Micrófono</label>
+                <select id="setMic" class="row-desktop"><option value="">Predeterminado de Windows</option></select>
+
+                <label for="setSpeaker" class="row-desktop">Altavoz / audífonos</label>
+                <select id="setSpeaker" class="row-desktop"><option value="">Predeterminado de Windows</option></select>
 
                 <label for="setDtmf">Tonos DTMF</label>
                 <select id="setDtmf">
@@ -286,25 +322,21 @@
 
                 <label for="setSrtp">Cifrado de audio (SRTP)</label>
                 <select id="setSrtp">
+                    <option value="off">Desactivado</option>
                     <option value="optional">Si el PBX lo ofrece</option>
                     <option value="mandatory">Obligatorio</option>
-                    <option value="off">Desactivado</option>
                 </select>
 
-                <label for="setExpires">Registro cada (seg)</label>
-                <input type="number" id="setExpires" min="60" max="3600" placeholder="600">
+                <div class="settings-section">Soporte</div>
 
-                <label for="setStun">STUN (detrás de NAT)</label>
-                <label class="checkbox-label"><input type="checkbox" id="setStun"> <span>Usar servidores STUN de Google</span></label>
+                <label for="setDebug">Registro (logs)</label>
+                <label class="checkbox-label"><input type="checkbox" id="setDebug"> <span>Habilitar registro detallado (incluye mensajes SIP)</span></label>
 
                 <label for="setMonitorUrl">Panel de monitoreo (URL)</label>
                 <input type="text" id="setMonitorUrl" placeholder="https://.../monitor/collector.php (vacío = apagado)" autocomplete="off">
 
                 <label for="setMonitorToken">Token del panel</label>
                 <input type="password" id="setMonitorToken" autocomplete="off">
-
-                <label for="setDebug">Diagnóstico</label>
-                <label class="checkbox-label"><input type="checkbox" id="setDebug"> <span>Logs detallados (soporte)</span></label>
             </div>
             <div id="settingsStatus" class="login-status"></div>
             <div class="modal-actions">

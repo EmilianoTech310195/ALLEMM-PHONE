@@ -95,7 +95,7 @@ def test_settings_roundtrip(tmp_path, monkeypatch):
     assert saved["sipPort"] == 5062
     assert saved["transport"] == "tcp"
     assert saved["dtmfMode"] == "RFC2833"
-    assert saved["srtp"] == "optional"
+    assert saved["srtp"] == "off"   # valor inválido → desactivado (como el PBX)
     assert "ignorado" not in saved
     again = config.load_settings()
     assert again["sipServer"] == "pbx.example.com"
@@ -217,3 +217,32 @@ def test_failed_tcp_fallback_reverts_to_udp_and_success_is_saved():
     eng2._on_reg_state(200, "OK", 300, 0)      # registró por TCP → se guarda
     assert ("transport_saved", {"transport": "tcp"}) in ev2
     assert eng2.settings.transport == "tcp"
+
+
+def test_account_identity_and_proxy_route():
+    from allemmsip.engine import account_id_uri, proxy_route
+
+    assert account_id_uri("2025", "pbx:49999") == "sip:2025@pbx:49999"
+    assert account_id_uri("2025", "pbx:49999", 'Ana "Recepción"') == '"Ana Recepción" <sip:2025@pbx:49999>'
+    srv = "sip:pbx:49999"
+    assert proxy_route("", "udp", srv) == ""
+    assert proxy_route("", "tcp", srv + ";transport=tcp") == "sip:pbx:49999;transport=tcp;lr"
+    assert proxy_route("sbc.example.com:5080", "udp", srv) == "sip:sbc.example.com:5080;lr"
+    assert proxy_route("sbc.example.com", "tcp", srv) == "sip:sbc.example.com;transport=tcp;lr"
+    assert proxy_route("sip:sbc;transport=udp", "tcp", srv) == "sip:sbc;transport=udp;lr"
+
+
+def test_stun_and_change_classification(tmp_path, monkeypatch):
+    monkeypatch.setenv("ALLEMMSIP_DATA_DIR", str(tmp_path))
+    s = config.load_settings()
+    assert config.stun_list(s) == []
+    s2 = config.save_settings({"stunEnabled": True, "stunServer": " stun.ejemplo.com ", "stunPort": "3479",
+                               "voicemailNumber": "*97 abc", "authUser": " 2025a "})
+    assert config.stun_list(s2) == ["stun.ejemplo.com:3479"]
+    assert s2["voicemailNumber"] == "*97" and s2["authUser"] == "2025a"
+    es = config.engine_settings(s2)
+    assert es.stun_servers == ["stun.ejemplo.com:3479"] and es.auth_user == "2025a"
+    ch = config.changed_keys(s, s2)
+    assert {"stunEnabled", "stunServer", "stunPort"} <= ch
+    assert any(k in config.RESTART_KEYS for k in ch)
+    assert not any(k in config.REREGISTER_KEYS for k in config.changed_keys(s2, config.save_settings({"voicemailNumber": "123"})))

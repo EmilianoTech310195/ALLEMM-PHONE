@@ -61,6 +61,16 @@ const UvacAlerts = {
             ],
             retryable: true
         },
+        'NETWORK_BLOCKED': {
+            icon: '📶',
+            title: 'Sin WiFi',
+            message: 'No hay WiFi y el uso de datos móviles está desactivado en Ajustes.',
+            causes: [
+                'Conéctate a una red WiFi, o',
+                'Activa "Red móvil" en Ajustes para usar tu plan de datos'
+            ],
+            retryable: true
+        },
         'PBX_BLOCKED_AFTER_AUTH': {
             icon: '🔒',
             title: 'El PBX dejó de responder',
