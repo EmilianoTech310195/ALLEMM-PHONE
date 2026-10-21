@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Logo ALLEMM en silueta blanca para la barra de notificaciones -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp" android:height="24dp"
+    android:viewportWidth="232" android:viewportHeight="254">
+    <group android:translateX="16" android:translateY="28">
+        <path android:pathData="M67,190 L14,190 L100,6 L186,190 L133,190"
+            android:strokeColor="#FFFFFFFF" android:strokeWidth="20"
+            android:strokeLineJoin="miter" android:fillColor="#00000000" />
+        <path android:pathData="M100,120.7 a14.3,14.3 0 1,0 0.001,0 z" android:fillColor="#FFFFFFFF" />
+    </group>
+</vector>

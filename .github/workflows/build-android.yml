@@ -1,0 +1,71 @@
+name: Compilar APK Android
+
+on:
+  push:
+    branches: ["**"]
+    paths:
+      - "android/**"
+      - "allemmsip/static/**"
+      - "tools/build-pjsip-android.sh"
+      - ".github/workflows/build-android.yml"
+  workflow_dispatch:
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Caché de PJSIP para Android
+        id: pjcache
+        uses: actions/cache@v4
+        with:
+          path: |
+            android/app/src/main/jniLibs
+            android/app/src/main/java/org/pjsip
+          key: pjsip-android-2.15.1-arm64-${{ hashFiles('tools/build-pjsip-android.sh') }}
+
+      - name: Compilar PJSIP + pjsua2 (Android NDK)
+        if: steps.pjcache.outputs.cache-hit != 'true'
+        run: |
+          sudo apt-get update && sudo apt-get install -y swig
+          bash tools/build-pjsip-android.sh
+
+      # Misma firma en todas las compilaciones de prueba (para poder actualizar
+      # el APK encima del anterior sin desinstalar). Si la caché se borra, hay
+      # que desinstalar una vez. Para una firma definitiva ver README (Android).
+      - name: Llave de firma de pruebas
+        uses: actions/cache@v4
+        with:
+          path: ~/.android/debug.keystore
+          key: allemm-debug-keystore-v1
+
+      - name: Crear llave si no existe
+        run: |
+          mkdir -p ~/.android
+          if [ ! -f ~/.android/debug.keystore ]; then
+            keytool -genkeypair -v -keystore ~/.android/debug.keystore -storepass android -alias androiddebugkey \
+              -keypass android -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=ALLEMM SIP Pruebas,O=ALLEMM,C=MX"
+          fi
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Compilar APK
+        working-directory: android
+        run: ./gradlew --no-daemon --stacktrace assembleRelease
+
+      - name: Renombrar
+        run: |
+          cp android/app/build/outputs/apk/release/app-release.apk AllemmSIP-android.apk
+          ls -la AllemmSIP-android.apk
+          unzip -l AllemmSIP-android.apk | grep -E "lib/|assets/index.html" | head -20
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: AllemmSIP-android
+          path: AllemmSIP-android.apk

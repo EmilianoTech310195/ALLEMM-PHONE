@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.Allemm" parent="Theme.AppCompat.NoActionBar">
+        <item name="android:windowBackground">@color/allemm_black</item>
+        <item name="android:statusBarColor">@color/allemm_black</item>
+        <item name="android:navigationBarColor">@color/allemm_black</item>
+        <item name="colorPrimary">@color/allemm_gold</item>
+        <item name="colorAccent">@color/allemm_gold</item>
+    </style>
+</resources>

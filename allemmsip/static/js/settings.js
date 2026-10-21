@@ -50,7 +50,7 @@ const AllemmSettings = {
 
         AllemmBridge.call('app_info').then(function (info) {
             const v = document.querySelector('.footer .version');
-            if (v) v.textContent = '· ' + info.name + ' v' + info.version + ' · escritorio';
+            if (v) v.textContent = '· ' + info.name + ' v' + info.version + (info.platform === 'android' ? ' · Android' : ' · escritorio');
             if (!info.engineAvailable) {
                 UvacAlerts.show('UNKNOWN', {
                     details: 'El motor SIP (pjsua2) no está compilado en esta instalación. ' +

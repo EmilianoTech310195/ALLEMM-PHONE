@@ -270,3 +270,7 @@ body {
 
 /* Escritorio: el banner de notificaciones del navegador no aplica */
 .notif-banner { display: none !important; }
+
+/* Android (APK): sin avisos de navegador; respetar la barra de estado */
+.is-android #mobileCallTip { display: none !important; }
+.is-android #settingsLogBtn::after { content: ' (compartir)'; }

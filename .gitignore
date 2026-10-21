@@ -22,3 +22,13 @@ MicrosoftEdgeWebView2Setup.exe
 # Datos locales
 settings.json
 *.log
+
+# Android: salida de tools/build-pjsip-android.sh y de Gradle
+third_party/pjproject-android/
+android/app/src/main/jniLibs/
+android/app/src/main/java/org/pjsip/
+android/.gradle/
+android/build/
+android/app/build/
+android/local.properties
+*.apk
