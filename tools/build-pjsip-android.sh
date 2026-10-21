@@ -40,7 +40,7 @@ CFG
 
 step "configure-android"
 ./configure-android --use-ndk-cflags --disable-video --disable-openh264 --disable-libyuv \
-  --disable-ffmpeg --disable-v4l2 --disable-sdl --disable-vpx
+  --disable-ffmpeg --disable-v4l2 --disable-sdl --disable-vpx --disable-android-mediacodec
 
 step "make (PJSIP)"
 make dep
