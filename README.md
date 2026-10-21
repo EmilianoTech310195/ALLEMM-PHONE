@@ -146,3 +146,51 @@ igual pero Windows mostrará "Más información → Ejecutar de todas formas".
 El instalador además registra la regla del **Firewall de Windows** para
 `AllemmSIP.exe` (entrada y salida), para que las respuestas SIP y el audio
 RTP no se bloqueen en ninguna PC. Por eso pide permisos de administrador.
+
+## Android (APK de pruebas)
+
+La carpeta `android/` es la app para celular. Usa **la misma interfaz**
+(`allemmsip/static`, empaquetada dentro del APK) y **el mismo motor PJSIP**,
+reescrito en Kotlin (`SipEngine.kt`, traducción directa de `engine.py`).
+Habla SIP por UDP/TCP con el PBX igual que el `.exe`: sin WebSocket y sin
+servicios de notificaciones de terceros.
+
+| Pieza | Archivo |
+|---|---|
+| Motor SIP (pjsua2) | `android/app/src/main/java/com/allemm/sip/SipEngine.kt` |
+| Servicio que mantiene la extensión registrada, timbre, notificación de llamada, audio | `SipService.kt` |
+| Puente interfaz ↔ motor (`window.AllemmAndroid`) | `JsBridge.kt` + `allemmsip/static/js/android.js` |
+| Pantalla (WebView) | `MainActivity.kt` |
+| Compilar PJSIP con el NDK | `tools/build-pjsip-android.sh` |
+
+**Descargar:** GitHub → *Actions* → *Compilar APK Android* → *Artifacts* →
+`AllemmSIP-android`. En el teléfono: abrir el `.apk`, permitir "instalar apps
+desconocidas" para el navegador o el administrador de archivos, instalar.
+
+**Primer uso:** aceptar micrófono y notificaciones, y cuando lo pida, permitir
+que la app **no se optimice la batería**. Sin eso Android la duerme con la
+pantalla apagada y deja de recibir llamadas. En Xiaomi, Huawei, Oppo y Samsung
+además conviene activar "Inicio automático" / "Sin restricciones" para ALLEMM SIP.
+
+**Comportamiento:**
+- La extensión queda registrada en segundo plano (notificación fija "En línea").
+- Llamada entrante: suena con el timbre del teléfono, vibra y muestra la pantalla
+  de llamada aunque esté bloqueado, con *Contestar* y *Rechazar*.
+- En llamada: auricular por defecto, botón de altavoz, la pantalla se apaga al
+  acercarla a la oreja.
+- Si cambia la red (WiFi ↔ datos), vuelve a registrar sola.
+- Enlaces `tel:` y `sip:` abren la app y marcan (click-to-call).
+- *Ajustes → Logs* comparte el `allemmsip.log` (WhatsApp, correo…).
+- Atrás manda la app al fondo; para salir de verdad: notificación → *Salir*.
+
+**Firma:** el APK de pruebas se firma con una llave de pruebas guardada en la
+caché de GitHub Actions, para poder instalar versiones nuevas encima. Si un
+día Android dice "app no instalada" al actualizar, desinstala la anterior una
+vez. Antes de repartirla en serio hay que crear una llave definitiva.
+
+**Compilar en tu PC** (Linux, macOS o WSL, con Android Studio/SDK, NDK, SWIG y JDK 17):
+
+```bash
+bash tools/build-pjsip-android.sh      # una vez: PJSIP para Android
+cd android && ./gradlew assembleRelease
+```
