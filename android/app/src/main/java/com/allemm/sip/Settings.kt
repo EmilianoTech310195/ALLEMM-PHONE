@@ -19,7 +19,7 @@ object Settings {
         put("sipPort", 49999)
         put("transport", "udp")
         put("autoTransportFallback", true)
-        put("registerExpires", 120)          // celular: registro corto, se recupera rápido
+        put("registerExpires", 300)          // igual que el .exe y MicroSIP
         put("registerTimeout", 15)
         put("retryDelay", 5)
         put("maxRetries", 3)
@@ -82,7 +82,7 @@ object Settings {
         sipServer = s.optString("sipServer"),
         sipPort = s.optInt("sipPort", 5060),
         transport = s.optString("transport", "udp"),
-        registerExpires = s.optInt("registerExpires", 120),
+        registerExpires = s.optInt("registerExpires", 300),
         retryDelay = s.optInt("retryDelay", 5),
         registerTimeout = s.optInt("registerTimeout", 15),
         stunServers = if (s.optBoolean("stunEnabled")) s.optJSONArray("stunServers").toList() else emptyList(),

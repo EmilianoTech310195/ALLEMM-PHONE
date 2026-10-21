@@ -49,7 +49,7 @@ class SipEngine(@Volatile var settings: EngineSettings, private val listener: (S
         var sipServer: String = "",
         var sipPort: Int = 5060,
         var transport: String = "udp",
-        var registerExpires: Int = 120,
+        var registerExpires: Int = 300,
         var retryDelay: Int = 5,
         var registerTimeout: Int = 15,
         var stunServers: List<String> = emptyList(),
