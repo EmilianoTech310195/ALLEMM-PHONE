@@ -28,7 +28,7 @@ jobs:
           pip install setuptools wheel
           git clone --depth 1 --branch 2.15.1 https://github.com/pjsip/pjproject.git /tmp/pjproject
           cd /tmp/pjproject
-          printf '#define PJ_HAS_IPV6 1\n#define PJMEDIA_HAS_SRTP 1\n#define PJSUA_MAX_CALLS 4\n' > pjlib/include/pj/config_site.h
+          printf '#define PJ_HAS_IPV6 1\n#define PJMEDIA_HAS_SRTP 1\n#define PJSUA_MAX_CALLS 4\n#define PJSIP_DONT_SWITCH_TO_TCP 1\n' > pjlib/include/pj/config_site.h
           ./configure --disable-video --disable-libwebrtc --disable-ffmpeg --disable-sdl --disable-v4l2 --disable-openh264 --disable-vpx CFLAGS="-fPIC -O2" CXXFLAGS="-fPIC -O2"
           make dep && make -j"$(nproc)"
           cd pjsip-apps/src/swig && make -j"$(nproc)" python

@@ -35,6 +35,9 @@ cat > pjlib/include/pj/config_site.h <<'CFG'
 #define PJ_HAS_IPV6 1
 #define PJMEDIA_HAS_SRTP 1
 #define PJSUA_MAX_CALLS 4
+/* El PBX escucha solo UDP: no pasar a TCP aunque el INVITE supere 1300 bytes
+   (con SRTP el INVITE crece y se perdía por TCP → 408). Como MicroSIP. */
+#define PJSIP_DONT_SWITCH_TO_TCP 1
 #include <pj/config_site_sample.h>
 CFG
 
