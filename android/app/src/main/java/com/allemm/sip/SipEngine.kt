@@ -315,10 +315,19 @@ class SipEngine(@Volatile var settings: EngineSettings, private val listener: (S
             post { registerJob() }
             return
         }
+        revertFailedFallback()
         emit("health", mapOf("state" to "error"))
         val data = mutableMapOf<String, Any?>("cause" to "Connection Timeout", "code" to 0, "reason" to "Sin respuesta del PBX en ${secs}s")
         if (recentAuthFailure()) data["hint"] = "auth_ban"
         emit("registration_failed", data)
+    }
+
+    /** TCP tampoco funcionó: el siguiente intento vuelve a UDP (lo configurado). */
+    private fun revertFailedFallback() {
+        if (fallbackDone && settings.transport.equals("tcp", true)) {
+            Log.i("TCP tampoco respondió; se vuelve a UDP para el siguiente intento")
+            settings.transport = "udp"
+        }
     }
 
     private fun canFallbackToTcp() = settings.autoFallbackTcp && settings.transport.equals("udp", true) &&
@@ -331,6 +340,10 @@ class SipEngine(@Volatile var settings: EngineSettings, private val listener: (S
         if (code == 200 && expiration > 0 && status == 0) {
             regDeadline = 0
             isRegistered = true
+            if (fallbackDone && settings.transport.equals("tcp", true)) {
+                emit("transport_saved", mapOf("transport" to "tcp"))   // registró por TCP: recordarlo
+                fallbackDone = false
+            }
             emit("health", mapOf("state" to "ok"))
             emit("registered")
             return
@@ -344,6 +357,7 @@ class SipEngine(@Volatile var settings: EngineSettings, private val listener: (S
         val was = isRegistered
         isRegistered = false
         regDeadline = 0
+        revertFailedFallback()
         val cause = registrationCause(code, reason, status)
         val data = mutableMapOf<String, Any?>("cause" to cause, "code" to code, "reason" to reason)
         if (cause == "Authentication Error" || cause == "Forbidden") lastAuthFailure = System.currentTimeMillis()

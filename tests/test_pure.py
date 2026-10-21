@@ -192,3 +192,28 @@ def test_timeout_after_auth_failure_is_flagged_as_ban():
     assert events[-1][1]["hint"] == "auth_ban"
     eng._on_register_timeout()
     assert events[-1][1]["hint"] == "auth_ban"
+
+
+def test_failed_tcp_fallback_reverts_to_udp_and_success_is_saved():
+    from allemmsip.engine import EngineSettings, SipEngine
+
+    eng = SipEngine(EngineSettings(sip_server="pbx.example.com", transport="udp", register_timeout=1))
+    events = []
+    eng._emit = lambda name, data=None: events.append((name, data or {}))
+    eng._post = lambda fn: None
+    eng._transports = {"udp": True, "tcp": True}
+    eng._on_register_timeout()                 # UDP sin respuesta → TCP
+    assert eng.settings.transport == "tcp"
+    eng._on_register_timeout()                 # TCP tampoco → vuelve a UDP, nada guardado
+    assert eng.settings.transport == "udp"
+    assert not any(n == "transport_saved" for n, _ in events)
+
+    eng2 = SipEngine(EngineSettings(sip_server="pbx.example.com", transport="udp", register_timeout=1))
+    ev2 = []
+    eng2._emit = lambda name, data=None: ev2.append((name, data or {}))
+    eng2._post = lambda fn: None
+    eng2._transports = {"udp": True, "tcp": True}
+    eng2._on_register_timeout()
+    eng2._on_reg_state(200, "OK", 300, 0)      # registró por TCP → se guarda
+    assert ("transport_saved", {"transport": "tcp"}) in ev2
+    assert eng2.settings.transport == "tcp"

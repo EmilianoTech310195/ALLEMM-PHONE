@@ -108,11 +108,11 @@ class JsApi:
     def _on_engine_event(self, name: str, data: dict) -> None:
         if name == "incoming_call":
             self.bring_to_front()
-        elif name == "transport_fallback" and data.get("to"):
-            # Guardar el transporte que sí funcionó para los próximos arranques.
+        elif name == "transport_saved" and data.get("transport"):
+            # Registró por TCP tras fallar UDP: recordarlo para los próximos arranques.
             try:
                 with self._lock:
-                    self._settings = config.save_settings({"transport": data["to"]})
+                    self._settings = config.save_settings({"transport": data["transport"]})
             except Exception:  # noqa: BLE001
                 log.exception("No se pudo guardar el transporte")
 

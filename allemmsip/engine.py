@@ -566,11 +566,18 @@ class SipEngine:
             self._emit("transport_fallback", {"from": "udp", "to": "tcp"})
             self._post(self._register_job)
             return
+        self._revert_failed_fallback()
         self._emit("health", {"state": "error"})
         data = {"cause": "Connection Timeout", "code": 0, "reason": f"Sin respuesta del PBX en {secs}s"}
         if self._recent_auth_failure():
             data["hint"] = "auth_ban"
         self._emit("registration_failed", data)
+
+    def _revert_failed_fallback(self) -> None:
+        """TCP tampoco funcionó: el siguiente intento vuelve a UDP (lo configurado)."""
+        if getattr(self, "_fallback_done", False) and self.settings.transport.lower() == "tcp":
+            log.info("TCP tampoco respondió; se vuelve a UDP para el siguiente intento")
+            self.settings.transport = "udp"
 
     def _can_fallback_to_tcp(self) -> bool:
         return (bool(self.settings.auto_fallback_tcp)
@@ -630,6 +637,10 @@ class SipEngine:
         if code == 200 and expiration > 0 and status == 0:
             self._cancel_register_timeout()
             self.is_registered = True
+            if getattr(self, "_fallback_done", False) and self.settings.transport.lower() == "tcp":
+                # Solo ahora (registró por TCP) vale la pena recordar TCP.
+                self._emit("transport_saved", {"transport": "tcp"})
+                self._fallback_done = False
             self._emit("health", {"state": "ok"})
             self._emit("registered", {})
             return
@@ -641,6 +652,7 @@ class SipEngine:
         was = self.is_registered
         self.is_registered = False
         self._cancel_register_timeout()
+        self._revert_failed_fallback()
         cause = registration_cause(code, reason, status)
         data = {"cause": cause, "code": code, "reason": reason}
         if cause in ("Authentication Error", "Forbidden"):

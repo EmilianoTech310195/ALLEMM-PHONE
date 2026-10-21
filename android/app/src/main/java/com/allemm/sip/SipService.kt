@@ -199,7 +199,7 @@ class SipService : Service() {
                     releaseLocks()
                     if (engine.extension.isNotEmpty()) showStatus("Fuera de línea · Ext. ${engine.extension}")
                 }
-                "transport_fallback" -> (data["to"] as? String)?.let {
+                "transport_saved" -> (data["transport"] as? String)?.let {
                     settings = Settings.save(this, JSONObject().put("transport", it))
                 }
                 "incoming_call" -> {
