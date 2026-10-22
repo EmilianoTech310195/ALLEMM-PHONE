@@ -1,0 +1,64 @@
+/* ========================================
+   ALLEMM SIP Web - Ajustes de la WebApp (iPhone / navegador)
+   ======================================== */
+
+html { -webkit-text-size-adjust: 100%; }
+body.is-web { -webkit-tap-highlight-color: transparent; overscroll-behavior: none; }
+
+/* App instalada en iPhone: respetar la muesca / isla y la barra de inicio. */
+body.is-web.is-standalone {
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: env(safe-area-inset-bottom);
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+}
+
+/* iOS hace zoom al enfocar campos con letra < 16px. */
+.is-ios input, .is-ios select, .is-ios textarea { font-size: 16px !important; }
+
+/* Aviso de instalación (login) */
+.install-hint {
+    position: relative;
+    margin-top: 18px;
+    padding: 14px 40px 14px 16px;
+    border: 1px solid rgba(198, 159, 90, .45);
+    border-radius: 10px;
+    background: rgba(198, 159, 90, .08);
+    text-align: left;
+    font-size: 13px;
+    line-height: 1.5;
+    color: #d9d6cf;
+}
+.install-hint-title {
+    font-family: var(--font-mono, monospace);
+    font-size: 11px;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    color: #C69F5A;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.install-hint ol { margin: 0; padding-left: 20px; }
+.install-hint li { margin: 3px 0; }
+.install-hint b { color: #F3F1EC; }
+.install-hint .ti { color: #C69F5A; }
+.install-hint-btn { width: 100%; margin-top: 4px; }
+.install-hint-close {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    width: 28px;
+    height: 28px;
+    border: 0;
+    border-radius: 6px;
+    background: transparent;
+    color: #9a978f;
+    cursor: pointer;
+    font-size: 16px;
+}
+.install-hint-close:hover { background: rgba(255, 255, 255, .06); color: #F3F1EC; }
+
+/* iPhone: una página web no puede cambiar entre auricular y altavoz. */
+.is-ios #speakerBtn { display: none !important; }

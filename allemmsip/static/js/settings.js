@@ -55,11 +55,14 @@ const AllemmSettings = {
         AllemmBridge.call('app_info').then(function (info) {
             self.info = info || {};
             const v = document.querySelector('.footer .version');
-            if (v) v.textContent = '· ' + info.name + ' v' + info.version + (info.platform === 'android' ? ' · Android' : ' · escritorio');
+            const plat = { android: ' · Android', web: ' · Web' }[info.platform] || ' · escritorio';
+            if (v) v.textContent = '· ' + info.name + ' v' + info.version + plat;
             if (!info.engineAvailable) {
                 UvacAlerts.show('UNKNOWN', {
-                    details: 'El motor SIP (pjsua2) no está compilado en esta instalación. ' +
-                             'Ejecuta tools\\build-pjsip-windows.ps1 y vuelve a compilar.'
+                    details: info.platform === 'web'
+                        ? 'No se pudo cargar el motor SIP (JsSIP). Recarga la página.'
+                        : 'El motor SIP (pjsua2) no está compilado en esta instalación. ' +
+                          'Ejecuta tools\\build-pjsip-windows.ps1 y vuelve a compilar.'
                 });
             }
         }).catch(function () {});
@@ -168,6 +171,8 @@ const AllemmSettings = {
         v('setDisplayName', s.displayName || '');
         v('setAuthUser', s.authUser || '');
         v('setProxy', s.outboundProxy || '');
+        v('setWssPath', s.wssPath || '/ws');
+        c('setKeepScreen', s.keepScreenOn);
         v('setVoicemail', s.voicemailNumber || '');
         v('setExpires', s.registerExpires || 300);
         v('setTransport', s.transport || 'udp');
@@ -188,6 +193,7 @@ const AllemmSettings = {
     /** Mostrar solo lo que aplica: nada de opciones que no hacen nada. */
     _refreshRows: function () {
         const info = this.info || {};
+        const web = info.platform === 'web';
         const tr = info.transports || { udp: true, tcp: true, tls: false };
         const sel = document.getElementById('setTransport');
         Array.prototype.forEach.call(sel.options, function (o) {
@@ -199,11 +205,22 @@ const AllemmSettings = {
         const show = function (cls, on) {
             document.querySelectorAll('#settingsModal .' + cls).forEach(function (el) { el.classList.toggle('row-hidden', !on); });
         };
-        show('row-fallback', sel.value === 'udp' && tr.tcp !== false);
-        show('row-tls', sel.value === 'tls');
+        show('row-fallback', !web && sel.value === 'udp' && tr.tcp !== false);
+        show('row-tls', !web && sel.value === 'tls');
         show('row-stun', document.getElementById('setStun').checked);
         show('row-android', info.platform === 'android');
-        show('row-desktop', info.platform !== 'android');
+        show('row-desktop', info.platform !== 'android' && !web);
+        // Web (WSS + WebRTC): sin transporte/proxy/SRTP (el navegador siempre cifra);
+        // micrófono/altavoz solo donde el navegador deja elegirlos.
+        show('row-native', !web);
+        show('row-web', web);
+        if (web) {
+            show('row-wakelock', !!info.wakeLock);
+            show('row-mic', !!info.micSelect);
+            show('row-spk', !!info.speakerSelect);
+        }
+        const portLabel = document.getElementById('setPortLabel');
+        if (portLabel) portLabel.textContent = web ? 'Puerto WSS' : 'Puerto';
     },
 
     _fillDevices: function (devices) {
@@ -212,7 +229,8 @@ const AllemmSettings = {
         const mic = document.getElementById('setMic');
         const spk = document.getElementById('setSpeaker');
         const cur = this.current || {};
-        [mic, spk].forEach(function (sel) { sel.innerHTML = '<option value="">Predeterminado de Windows</option>'; });
+        const dflt = (this.info || {}).platform === 'web' ? 'Predeterminado del sistema' : 'Predeterminado de Windows';
+        [mic, spk].forEach(function (sel) { sel.innerHTML = '<option value="">' + dflt + '</option>'; });
         devices.forEach(function (d) {
             if (d.inputCount > 0) {
                 const o = document.createElement('option');
@@ -257,6 +275,12 @@ const AllemmSettings = {
         if ((self.info || {}).platform !== 'android') {
             values.captureDevice = document.getElementById('setMic').value;
             values.playbackDevice = document.getElementById('setSpeaker').value;
+        }
+        if ((self.info || {}).platform === 'web') {
+            values.wssPath = val('setWssPath') || '/ws';
+            values.keepScreenOn = chk('setKeepScreen');
+            ['transport', 'autoTransportFallback', 'tlsVerify', 'outboundProxy', 'srtp', 'allowMobileData']
+                .forEach(function (k) { delete values[k]; });
         }
         if (!values.sipServer) { this._status('El servidor SIP es obligatorio.', 'error'); return; }
         if (values.stunEnabled && !values.stunServer) { this._status('Escribe el servidor STUN o desactívalo.', 'error'); return; }

@@ -9,7 +9,7 @@
      // → { country: 'México', flagSvg: '<svg...>', formatted: '+52 229 512 5192', isInternal: false }
 
      const info = UvacCallerID.identify('2042');
-     // → { country: 'UVAC interna', flagSvg: '<svg...>', formatted: '2042', isInternal: true }
+     // → { country: 'Extensión interna', flagSvg: '<svg...>', formatted: '2042', isInternal: true }
 
    NO requiere internet. Toda la base de datos está embebida.
    ======================================== */
@@ -405,7 +405,7 @@ const UvacCallerID = (function () {
         // Caso 2: extensión interna
         if (_isInternalExtension(rawNumber)) {
             return {
-                country: 'UVAC interna',
+                country: 'Extensión interna',
                 flagSvg: FLAG_INTERNAL,
                 formatted: String(rawNumber),
                 isInternal: true,

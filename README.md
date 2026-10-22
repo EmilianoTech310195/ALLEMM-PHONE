@@ -194,3 +194,42 @@ vez. Antes de repartirla en serio hay que crear una llave definitiva.
 bash tools/build-pjsip-android.sh      # una vez: PJSIP para Android
 cd android && ./gradlew assembleRelease
 ```
+
+## WebApp (iPhone y navegador)
+
+Para quien no puede instalar el `.exe` ni el APK (iPhone, iPad, Mac,
+cualquier navegador). Usa **la misma interfaz** (`allemmsip/static`), pero el
+motor es **JsSIP sobre WSS** (WebSocket seguro) con audio **WebRTC**: un
+navegador no puede hablar SIP por UDP.
+
+| Pieza | Archivo |
+|---|---|
+| Motor web (JsSIP + WebRTC, mismo contrato que `engine.py`) | `web/static/js/web-engine.js` |
+| Instalación como app (service worker, aviso para iPhone) | `web/static/js/pwa.js`, `web/sw.template.js`, `web/static/manifest.webmanifest` |
+| Armar la carpeta publicable | `web/build.py` |
+| Prueba de llamadas (3 navegadores + conmutador WSS de prueba) | `web/tests/` |
+
+**Requisitos del conmutador (FreePBX):**
+- Transporte **WSS** activo (por defecto puerto **8089**, ruta `/ws`) con
+  certificado válido para `pbx18879.pbxhosting.com.mx`.
+- Cada extensión que se use desde la WebApp con **WebRTC** habilitado
+  (ICE, AVPF, DTLS, rtcp-mux). Es lo mismo que pedía uvacSIP Web.
+
+**Publicar:** cualquier hosting con **HTTPS** sirve (sin HTTPS el navegador
+bloquea el micrófono):
+- **GitHub Pages:** *Settings → Pages → Source: GitHub Actions* (una sola vez).
+  Cada push la publica en `https://<usuario>.github.io/ALLEMM-PHONE/`.
+- **Servidor propio:** GitHub → *Actions* → *WebApp* → artefacto
+  `AllemmSIP-web`; subir su contenido tal cual.
+- Local: `python web/build.py` → carpeta `dist/web`.
+
+**En el iPhone:** abrir el enlace en **Safari** → *Compartir* → *Agregar a
+pantalla de inicio* → abrir desde el ícono ALLEMM. Ajustes muestra solo lo que
+aplica en web: servidor, puerto WSS, ruta, STUN, DTMF, registro, pantalla
+encendida, logs (se descargan).
+
+**Límite de iPhone (de Apple, no de la app):** iOS congela las páginas web en
+segundo plano. Las llamadas entran **mientras la app está abierta en
+pantalla**; con el teléfono bloqueado o la app atrás no suena. Al volver a
+abrirla se reconecta sola. Para recibir con el iPhone bloqueado hace falta una
+app nativa de iOS con notificaciones push (PushKit/CallKit).

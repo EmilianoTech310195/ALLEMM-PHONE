@@ -402,7 +402,8 @@ window.addEventListener('online', function () {
    frente y parpadeo en la barra de tareas). El permiso de notificaciones y el
    banner "Activa las notificaciones" eran de la versión web (PWA). */
 document.addEventListener('DOMContentLoaded', function () {
-    if (typeof UvacApp === 'undefined') return;
+    // En la WebApp sí se usan: avisan de la llamada si la pestaña está atrás.
+    if (typeof UvacApp === 'undefined' || window.ALLEMM_WEB) return;
     UvacApp._requestNotificationPermission = function () {};
     UvacApp._showNotifBanner = function () {};
     UvacApp._onClickEnableNotif = function () {};

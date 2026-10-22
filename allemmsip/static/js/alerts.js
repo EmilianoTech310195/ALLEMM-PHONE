@@ -53,7 +53,7 @@ const UvacAlerts = {
         'WS_CONNECTION_FAILED': {
             icon: '🔌',
             title: 'No se pudo conectar al PBX',
-            message: 'No pudimos establecer comunicación con el servidor de UVAC.',
+            message: 'No pudimos establecer comunicación con el conmutador de ALLEMM.',
             causes: [
                 'El servidor PBX está temporalmente fuera de servicio',
                 'Tu firewall o antivirus bloquea la conexión',
@@ -361,6 +361,22 @@ const UvacAlerts = {
      * @returns {boolean} true si todo OK, false si hay problema
      */
     preflightCheck: function() {
+        // WebApp (JsSIP): el navegador exige HTTPS para el micrófono y WebRTC.
+        if (window.ALLEMM_WEB) {
+            if (!window.isSecureContext) {
+                this.show('UNKNOWN', { details: 'Abre la app desde una dirección https:// (sin HTTPS el navegador bloquea el micrófono).' });
+                return false;
+            }
+            if (typeof RTCPeerConnection === 'undefined' || !(navigator.mediaDevices && navigator.mediaDevices.getUserMedia)) {
+                this.show('UNKNOWN', { details: 'Este navegador no permite llamadas (WebRTC). En iPhone usa Safari; en Android, Chrome.' });
+                return false;
+            }
+            if (typeof JsSIP === 'undefined') {
+                this.show('UNKNOWN', { details: 'No se pudo cargar el motor SIP. Recarga la página.' });
+                return false;
+            }
+            return true;
+        }
         // Versión de escritorio: no hay HTTPS, WebRTC ni CDN que verificar.
         // Solo hace falta el puente nativo (pywebview) con el motor PJSIP.
         if (!(window.pywebview && window.pywebview.api)) {
@@ -457,7 +473,7 @@ const UvacAlerts = {
     downloadLog: function() {
         try {
             const logs = JSON.parse(sessionStorage.getItem('uvac_error_log') || '[]');
-            const text = `uvacSIP Web - Log de errores
+            const text = `ALLEMM SIP - Log de errores
 ========================================
 Generado: ${new Date().toISOString()}
 Navegador: ${navigator.userAgent}
@@ -474,7 +490,7 @@ ${logs.map(l => `[${l.timestamp}] ${l.code}
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = `uvacSIP_log_${Date.now()}.txt`;
+            a.download = `allemmsip_errores_${Date.now()}.txt`;
             a.click();
             URL.revokeObjectURL(url);
         } catch (e) {

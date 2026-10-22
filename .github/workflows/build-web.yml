@@ -1,0 +1,67 @@
+name: WebApp (iPhone / navegador)
+
+on:
+  push:
+    branches: ["**"]
+    paths:
+      - "web/**"
+      - "allemmsip/static/**"
+      - ".github/workflows/build-web.yml"
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Armar la WebApp
+        run: python web/build.py dist/web
+
+      - name: Prueba de llamadas (3 navegadores + conmutador WSS de prueba)
+        run: |
+          pip install websockets==14.2
+          npm install --no-save --no-package-lock playwright@1.56.1
+          npx playwright install --with-deps chromium
+          openssl req -x509 -newkey rsa:2048 -nodes -keyout /tmp/k.pem -out /tmp/c.pem -days 2 \
+            -subj "/CN=127.0.0.1" -addext "subjectAltName=IP:127.0.0.1" 2>/dev/null
+          python -m http.server 8000 -b 127.0.0.1 -d dist/web > /tmp/http.log 2>&1 &
+          python web/tests/sip_ws_proxy.py --cert /tmp/c.pem --key /tmp/k.pem --log /tmp/msgs.jsonl > /tmp/proxy.log 2>&1 &
+          sleep 2
+          node web/tests/e2e.js /tmp/msgs.jsonl
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: AllemmSIP-web
+          path: dist/web
+          include-hidden-files: true
+          if-no-files-found: error
+
+      - uses: actions/upload-pages-artifact@v3
+        if: github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
+        with:
+          path: dist/web
+
+  # Publica en https://<usuario>.github.io/<repo>/ — requiere activar una vez
+  # Settings → Pages → Source: "GitHub Actions". Mientras no esté activado,
+  # este paso se salta sin marcar error (la WebApp igual queda como artefacto).
+  pages:
+    needs: build
+    if: github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - id: deploy
+        uses: actions/deploy-pages@v4

@@ -261,7 +261,7 @@
                 <label for="setServer">Servidor SIP (dominio)</label>
                 <input type="text" id="setServer" placeholder="pbx.midominio.com" autocomplete="off" spellcheck="false">
 
-                <label for="setPort">Puerto</label>
+                <label for="setPort" id="setPortLabel">Puerto</label>
                 <input type="number" id="setPort" min="1" max="65535" placeholder="5060">
 
                 <label for="setDisplayName">Mostrar como</label>
@@ -270,8 +270,11 @@
                 <label for="setAuthUser">Nombre de autenticación</label>
                 <input type="text" id="setAuthUser" placeholder="[la extensión es el predeterminado]" autocomplete="off" spellcheck="false">
 
-                <label for="setProxy">Proxy saliente</label>
-                <input type="text" id="setProxy" placeholder="[ninguno: se usa el dominio]" autocomplete="off" spellcheck="false">
+                <label for="setProxy" class="row-native">Proxy saliente</label>
+                <input type="text" id="setProxy" class="row-native" placeholder="[ninguno: se usa el dominio]" autocomplete="off" spellcheck="false">
+
+                <label for="setWssPath" class="row-web">Ruta WebSocket</label>
+                <input type="text" id="setWssPath" class="row-web" placeholder="/ws" autocomplete="off" spellcheck="false">
 
                 <label for="setVoicemail">Buzón de voz</label>
                 <input type="text" id="setVoicemail" placeholder="Ej. *97 (mantén presionado el 1)" autocomplete="off" inputmode="tel">
@@ -281,8 +284,8 @@
 
                 <div class="settings-section">Red</div>
 
-                <label for="setTransport">Protocolo de transporte</label>
-                <select id="setTransport">
+                <label for="setTransport" class="row-native">Protocolo de transporte</label>
+                <select id="setTransport" class="row-native">
                     <option value="udp">UDP (recomendado)</option>
                     <option value="tcp">TCP</option>
                     <option value="tls">TLS (cifrado)</option>
@@ -306,13 +309,16 @@
                 <label for="setMobileData" class="row-android">Red móvil</label>
                 <label class="checkbox-label row-android"><input type="checkbox" id="setMobileData"> <span>Usar datos móviles cuando no hay WiFi</span></label>
 
+                <label for="setKeepScreen" class="row-web row-wakelock">Pantalla</label>
+                <label class="checkbox-label row-web row-wakelock"><input type="checkbox" id="setKeepScreen"> <span>Mantener encendida mientras la app está abierta (para recibir llamadas)</span></label>
+
                 <div class="settings-section">Audio</div>
 
-                <label for="setMic" class="row-desktop">Micrófono</label>
-                <select id="setMic" class="row-desktop"><option value="">Predeterminado de Windows</option></select>
+                <label for="setMic" class="row-desktop row-mic">Micrófono</label>
+                <select id="setMic" class="row-desktop row-mic"><option value="">Predeterminado de Windows</option></select>
 
-                <label for="setSpeaker" class="row-desktop">Altavoz / audífonos</label>
-                <select id="setSpeaker" class="row-desktop"><option value="">Predeterminado de Windows</option></select>
+                <label for="setSpeaker" class="row-desktop row-spk">Altavoz / audífonos</label>
+                <select id="setSpeaker" class="row-desktop row-spk"><option value="">Predeterminado de Windows</option></select>
 
                 <label for="setDtmf">Tonos DTMF</label>
                 <select id="setDtmf">
@@ -320,8 +326,8 @@
                     <option value="RFC2833">RFC 2833 (en el audio)</option>
                 </select>
 
-                <label for="setSrtp">Cifrado de audio (SRTP)</label>
-                <select id="setSrtp">
+                <label for="setSrtp" class="row-native">Cifrado de audio (SRTP)</label>
+                <select id="setSrtp" class="row-native">
                     <option value="off">Desactivado</option>
                     <option value="optional">Si el PBX lo ofrece</option>
                     <option value="mandatory">Obligatorio</option>
