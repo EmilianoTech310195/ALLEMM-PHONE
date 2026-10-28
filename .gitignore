@@ -33,3 +33,7 @@ android/app/build/
 android/local.properties
 *.apk
 node_modules/
+
+# WebApp: credenciales y datos del servidor de monitoreo
+web/server/monitor/db_config.php
+web/server/monitor/monitor_data.php*

@@ -36,6 +36,23 @@ jobs:
           sleep 2
           node web/tests/e2e.js /tmp/msgs.jsonl
 
+      - name: Prueba del monitoreo (PHP + MySQL)
+        run: |
+          php -m | grep -qi pdo_mysql || (sudo apt-get update && sudo apt-get install -y php-mysql)
+          sudo systemctl start mysql
+          mysql -uroot -proot -e "CREATE DATABASE allemm_ci CHARACTER SET utf8mb4;
+            CREATE USER 'allemm'@'localhost' IDENTIFIED BY 'ci-pw'; GRANT ALL ON allemm_ci.* TO 'allemm'@'localhost';"
+          cp -r dist/web /tmp/site      # el artefacto queda sin db_config.php
+          cat > /tmp/site/monitor/db_config.php <<'PHP'
+          <?php
+          define('DB_HOST', 'localhost'); define('DB_NAME', 'allemm_ci');
+          define('DB_USER', 'allemm'); define('DB_PASS', 'ci-pw');
+          define('REPORT_TOKEN', 'rep-ci'); define('ADMIN_TOKEN', 'adm-ci');
+          PHP
+          php -S 127.0.0.1:8100 -t /tmp/site > /tmp/php.log 2>&1 &
+          sleep 1
+          python web/tests/monitor_test.py http://127.0.0.1:8100 rep-ci adm-ci || (cat /tmp/php.log; exit 1)
+
       - uses: actions/upload-artifact@v4
         with:
           name: AllemmSIP-web

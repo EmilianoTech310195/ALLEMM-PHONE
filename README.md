@@ -207,11 +207,19 @@ navegador no puede hablar SIP por UDP.
 | Motor web (JsSIP + WebRTC, mismo contrato que `engine.py`) | `web/static/js/web-engine.js` |
 | Instalación como app (service worker, aviso para iPhone) | `web/static/js/pwa.js`, `web/sw.template.js`, `web/static/manifest.webmanifest` |
 | Armar la carpeta publicable | `web/build.py` |
-| Prueba de llamadas (3 navegadores + conmutador WSS de prueba) | `web/tests/` |
+| Configuración del sitio (conmutador, recolector) | `web/static/js/allemm-config.js` |
+| Recolector PHP + MySQL, panel de administración | `web/server/monitor/`, `web/server/admin/` |
+| Pruebas: llamadas (3 navegadores + conmutador WSS de prueba) y monitoreo (PHP + MySQL) | `web/tests/` |
+
+**Monitoreo y panel:** `web/server/` (recolector PHP + MySQL y panel de
+administración) va en el mismo paquete. Despliegue y configuración paso a paso:
+[`web/DESPLIEGUE_ALLEMM.md`](web/DESPLIEGUE_ALLEMM.md). El conmutador y el
+recolector se configuran en `js/allemm-config.js` y `monitor/db_config.php`
+(este último nunca va a GitHub).
 
 **Requisitos del conmutador (FreePBX):**
 - Transporte **WSS** activo (por defecto puerto **8089**, ruta `/ws`) con
-  certificado válido para `pbx18879.pbxhosting.com.mx`.
+  certificado válido.
 - Cada extensión que se use desde la WebApp con **WebRTC** habilitado
   (ICE, AVPF, DTLS, rtcp-mux). Es lo mismo que pedía uvacSIP Web.
 

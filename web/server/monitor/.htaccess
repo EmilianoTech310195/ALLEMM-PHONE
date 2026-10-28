@@ -1,0 +1,6 @@
+# ALLEMM — monitor/: solo collector.php y setup_db.php se abren desde el navegador.
+Options -Indexes
+
+<FilesMatch "^(db_config|db_config\.sample|db|monitor_data)\.php$|\.(sql|lock)$|^directory\.js$">
+    Require all denied
+</FilesMatch>

@@ -50,3 +50,31 @@ def test_build_version_is_stable(tmp_path):
     va = re.search(r"const VERSION = '(\w+)'", (a / "sw.js").read_text()).group(1)
     vb = re.search(r"const VERSION = '(\w+)'", (b / "sw.js").read_text()).group(1)
     assert va == vb   # misma entrada → misma versión (sin recargas innecesarias en los celulares)
+
+
+def test_monitor_and_admin_are_packaged_without_secrets(tmp_path):
+    secret = ROOT / "web" / "server" / "monitor" / "db_config.php"
+    created = not secret.exists()
+    if created:
+        secret.write_text("<?php define('DB_PASS', 'secreto');", encoding="utf-8")
+    try:
+        out = _build(tmp_path)
+    finally:
+        if created:
+            secret.unlink()
+    assert (out / "monitor" / "collector.php").is_file()
+    assert (out / "monitor" / "setup_db.php").is_file()
+    assert (out / "admin" / "admin.html").is_file()
+    assert not (out / "monitor" / "db_config.php").exists()
+    sw = (out / "sw.js").read_text(encoding="utf-8")
+    assert "monitor/" not in sw.split("const FILES")[1].split("];")[0]
+    assert "admin/" not in sw.split("const FILES")[1].split("];")[0]
+
+
+def test_site_config_loads_first_and_has_no_uvac_pbx(tmp_path):
+    out = _build(tmp_path)
+    html = (out / "index.html").read_text(encoding="utf-8")
+    scripts = re.findall(r'<script src="([^"]+)"', html)
+    assert scripts.index("js/allemm-config.js") < scripts.index("js/web-engine.js")
+    for f in ("js/allemm-config.js", "js/web-engine.js"):
+        assert "pbx18879" not in (out / f).read_text(encoding="utf-8")

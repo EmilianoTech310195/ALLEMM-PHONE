@@ -21,9 +21,11 @@
         (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
     var IS_MOBILE = IS_IOS || /Android|Mobile/i.test(navigator.userAgent);
 
+    // Valores por defecto. Los de cada empresa (conmutador, recolector) vienen de
+    // js/allemm-config.js, que se edita en el servidor sin recompilar.
     var DEFAULTS = {
-        sipServer: 'pbx18879.pbxhosting.com.mx',
-        sipPort: 8089,                  // puerto WSS del conmutador (no el 49999 UDP del .exe)
+        sipServer: '',                  // conmutador: lo define js/allemm-config.js
+        sipPort: 8089,                  // puerto WSS del conmutador (no el UDP del .exe)
         wssPath: '/ws',
         transport: 'wss',
         registerExpires: 300,
@@ -52,6 +54,15 @@
         monitorToken: '',
         debug: false
     };
+    (function applySiteConfig(cfg) {
+        if (!cfg || typeof cfg !== 'object') return;
+        if (cfg.wssPort !== undefined && cfg.sipPort === undefined) cfg.sipPort = cfg.wssPort;
+        Object.keys(cfg).forEach(function (k) { if (k in DEFAULTS) DEFAULTS[k] = cfg[k]; });
+        if (DEFAULTS.monitorUrl) {
+            // 'monitor/collector.php' (relativa a la app) → URL completa
+            try { DEFAULTS.monitorUrl = new URL(DEFAULTS.monitorUrl, location.href).href; } catch (e) {}
+        }
+    })(window.ALLEMM_WEB_CONFIG);
     // Cambian la cuenta/conexión: hay que volver a registrar.
     var REREGISTER_KEYS = ['sipServer', 'sipPort', 'wssPath', 'displayName', 'authUser',
         'registerExpires', 'sessionTimers'];
@@ -76,8 +87,14 @@
         Object.keys(DEFAULTS).forEach(function (k) { out[k] = (k in s) ? s[k] : DEFAULTS[k]; });
         return out;
     }
+    // Solo se guarda lo que el usuario cambió: si el administrador actualiza
+    // js/allemm-config.js (p. ej. el conmutador nuevo), a todos les llega.
     function storeSettings(s) {
-        try { localStorage.setItem(STORE_KEY, JSON.stringify(s)); } catch (e) { log('No se pudo guardar ajustes:', e); }
+        var diff = {};
+        Object.keys(DEFAULTS).forEach(function (k) {
+            if (JSON.stringify(s[k]) !== JSON.stringify(DEFAULTS[k])) diff[k] = s[k];
+        });
+        try { localStorage.setItem(STORE_KEY, JSON.stringify(diff)); } catch (e) { log('No se pudo guardar ajustes:', e); }
     }
     function normalize(s) {
         s.sipServer = String(s.sipServer || '').trim().replace(/^wss?:\/\//i, '').replace(/^sips?:/i, '').replace(/\/.*$/, '');

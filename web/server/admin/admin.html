@@ -1,0 +1,484 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>ALLEMM · Monitor de telefonía</title>
+<link rel="icon" type="image/svg+xml" href="../img/allemm-logo.svg">
+<style>
+:root {
+  --bg: #0A0A0C; --panel: #121216; --panel2: #18181d; --line: #26262d;
+  --gold: #C69F5A; --gold-soft: rgba(198,159,90,.12); --text: #F3F1EC; --muted: #9a978f;
+  --ok: #3fb37f; --warn: #e0b341; --bad: #e5534b; --info: #5aa0c6;
+  --mono: 'JetBrains Mono', 'Cascadia Code', Consolas, monospace;
+  --sans: 'Inter', 'Segoe UI', system-ui, -apple-system, Arial, sans-serif;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; background: var(--bg); color: var(--text); font: 14px/1.5 var(--sans); }
+body { background: radial-gradient(circle at 1px 1px, rgba(255,255,255,.04) 1px, transparent 1.2px) 0 0/18px 18px, var(--bg); min-height: 100vh; }
+a { color: var(--gold); }
+button, input, select { font: inherit; color: inherit; }
+.wrap { max-width: 1240px; margin: 0 auto; padding: 0 16px 40px; }
+.mono { font-family: var(--mono); }
+.k { font-family: var(--mono); font-size: 10.5px; letter-spacing: .22em; text-transform: uppercase; color: var(--gold); }
+.muted { color: var(--muted); }
+.hidden { display: none !important; }
+
+header.top { position: sticky; top: 0; z-index: 5; background: rgba(10,10,12,.92); backdrop-filter: blur(6px); border-bottom: 1px solid var(--line); }
+header.top .wrap { display: flex; align-items: center; gap: 14px; padding: 12px 16px; flex-wrap: wrap; }
+.brand { display: flex; align-items: center; gap: 10px; margin-right: auto; }
+.brand svg { width: 26px; height: 28px; }
+.brand b { font-family: var(--mono); letter-spacing: .32em; font-size: 13px; }
+.brand span { color: var(--muted); font-size: 12px; }
+.pill { font-family: var(--mono); font-size: 10.5px; letter-spacing: .12em; text-transform: uppercase; padding: 4px 10px; border-radius: 99px; border: 1px solid var(--line); color: var(--muted); display: inline-flex; gap: 6px; align-items: center; white-space: nowrap; }
+.pill i { width: 7px; height: 7px; border-radius: 50%; background: var(--muted); display: inline-block; }
+.pill.ok i { background: var(--ok); } .pill.bad i { background: var(--bad); } .pill.warn i { background: var(--warn); }
+
+.btn { background: var(--panel2); border: 1px solid var(--line); border-radius: 6px; padding: 7px 12px; cursor: pointer; font-size: 13px; }
+.btn:hover { border-color: var(--gold); }
+.btn.gold { background: var(--gold); color: #111; border-color: var(--gold); font-weight: 700; }
+.btn.on { border-color: var(--gold); color: var(--gold); background: var(--gold-soft); }
+.btn.small { padding: 4px 9px; font-size: 12px; }
+.btn.danger:hover { border-color: var(--bad); color: var(--bad); }
+input[type=text], input[type=password], input[type=number], input[type=date], select {
+  background: #0d0d10; border: 1px solid var(--line); border-radius: 6px; padding: 7px 10px; min-width: 0; }
+input:focus, select:focus { outline: none; border-color: var(--gold); }
+input[type=date] { color-scheme: dark; }
+
+.grid { display: grid; gap: 16px; grid-template-columns: repeat(12, 1fr); margin-top: 18px; }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 16px 18px; min-width: 0; }
+.card h2 { margin: 0 0 12px; font-size: 15px; font-weight: 600; display: flex; align-items: center; gap: 10px; }
+.card h2 .k { margin-left: auto; }
+.c12 { grid-column: span 12; } .c8 { grid-column: span 8; } .c6 { grid-column: span 6; } .c4 { grid-column: span 4; } .c3 { grid-column: span 3; }
+@media (max-width: 900px) { .c8, .c6, .c4 { grid-column: span 12; } .c3 { grid-column: span 6; } }
+
+.stat .n { font-size: 30px; font-weight: 700; font-family: var(--mono); }
+.stat .l { color: var(--muted); font-size: 12px; }
+.stat.gold .n { color: var(--gold); }
+
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip { border: 1px solid var(--line); background: var(--panel2); border-radius: 8px; padding: 6px 10px; display: flex; gap: 8px; align-items: center; }
+.chip .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--ok); box-shadow: 0 0 8px var(--ok); }
+.chip.call { border-color: rgba(198,159,90,.6); background: var(--gold-soft); }
+.chip.call .dot { background: var(--gold); box-shadow: 0 0 8px var(--gold); }
+.chip small { color: var(--muted); font-family: var(--mono); }
+.empty { color: var(--muted); padding: 10px 0; }
+
+table { width: 100%; border-collapse: collapse; }
+th { text-align: left; font-family: var(--mono); font-size: 10.5px; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); font-weight: 400; padding: 8px 8px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+td { padding: 8px 8px; border-bottom: 1px solid #1c1c22; vertical-align: middle; }
+td.num, th.num { text-align: right; font-family: var(--mono); }
+.scroll { overflow-x: auto; }
+.dir-in { color: var(--info); } .dir-out { color: var(--gold); }
+
+.toolbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 12px; }
+.toolbar .sep { flex: 1; }
+.day { border: 1px solid var(--line); border-radius: 8px; margin-bottom: 8px; overflow: hidden; }
+.day > summary { list-style: none; cursor: pointer; padding: 10px 14px; display: flex; gap: 14px; align-items: center; flex-wrap: wrap; background: var(--panel2); }
+.day > summary::-webkit-details-marker { display: none; }
+.day > summary b { min-width: 170px; }
+.day > summary .tag { font-family: var(--mono); font-size: 12px; color: var(--muted); }
+.day[open] > summary { border-bottom: 1px solid var(--line); }
+.day .body { padding: 4px 8px 8px; }
+
+.sem { width: 12px; height: 12px; border-radius: 50%; display: inline-block; vertical-align: middle; }
+.sem.verde { background: var(--ok); box-shadow: 0 0 8px var(--ok); }
+.sem.amarillo { background: var(--warn); box-shadow: 0 0 8px var(--warn); }
+.sem.rojo { background: var(--bad); box-shadow: 0 0 8px var(--bad); }
+.sem.gris { background: #555; }
+.bar { height: 6px; background: #22222a; border-radius: 4px; overflow: hidden; min-width: 80px; }
+.bar i { display: block; height: 100%; background: var(--gold); }
+.rank { font-family: var(--mono); color: var(--gold); }
+
+.feed { max-height: 320px; overflow-y: auto; font-family: var(--mono); font-size: 12px; }
+.feed div { padding: 4px 0; border-bottom: 1px dashed #1f1f25; }
+.feed .t { color: var(--muted); margin-right: 8px; }
+
+.agents td input[type=text] { width: 100%; }
+.agents td input[type=number] { width: 80px; }
+.cfg { display: flex; flex-wrap: wrap; gap: 14px; align-items: end; margin-bottom: 14px; }
+.cfg label { display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: var(--muted); }
+.cfg input { width: 110px; }
+.msg { margin-left: 8px; font-size: 12px; }
+.msg.ok { color: var(--ok); } .msg.bad { color: var(--bad); }
+
+.gate { max-width: 420px; margin: 12vh auto 0; }
+.gate p { color: var(--muted); }
+.gate input { width: 100%; margin: 6px 0 12px; }
+pre.diag { background: #0d0d10; border: 1px solid var(--line); border-radius: 6px; padding: 10px; overflow-x: auto; font-size: 12px; }
+</style>
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+  <g id="logo"><path d="M67 190 L14 190 L100 6 L186 190 L133 190" fill="none" stroke="#C69F5A" stroke-width="20"/><circle cx="100" cy="135" r="14.3" fill="#C69F5A"/></g>
+</defs></svg>
+
+<header class="top"><div class="wrap">
+  <div class="brand"><svg viewBox="-16 -28 232 254"><use href="#logo"/></svg><b>ALLEMM</b><span>Monitor de telefonía</span></div>
+  <span class="pill" id="pColl"><i></i>Recolector</span>
+  <span class="pill" id="pDb"><i></i>Base de datos</span>
+  <span class="pill" id="pTime"><i></i>—</span>
+  <button class="btn small" id="btnLogout" title="Cambiar el token del panel">Salir</button>
+</div></header>
+
+<!-- Acceso -->
+<div class="wrap hidden" id="gate"><div class="card gate">
+  <div class="k">// Acceso al panel</div>
+  <h2 style="margin-top:8px">Token de administración</h2>
+  <p>Es el <span class="mono">ADMIN_TOKEN</span> de <span class="mono">monitor/db_config.php</span>. Se guarda solo en este navegador.</p>
+  <input type="password" id="tokenIn" autocomplete="off" placeholder="Token del panel">
+  <button class="btn gold" id="tokenBtn">Entrar</button><span class="msg bad" id="tokenMsg"></span>
+</div></div>
+
+<main class="wrap hidden" id="app">
+  <div class="grid">
+    <div class="card stat c3"><div class="n" id="sOnline">0</div><div class="l">En línea</div></div>
+    <div class="card stat gold c3"><div class="n" id="sActive">0</div><div class="l">En llamada</div></div>
+    <div class="card stat c3"><div class="n" id="sToday">0</div><div class="l">Llamadas hoy</div></div>
+    <div class="card stat c3"><div class="n" id="sMin">0</div><div class="l">Minutos hoy</div></div>
+
+    <div class="card c6"><h2>En línea <span class="k" id="onlineCount">0</span></h2><div class="chips" id="onlineList"></div></div>
+    <div class="card c6"><h2>Llamadas en curso <span class="k" id="liveCount">0</span></h2><div id="liveList"></div></div>
+
+    <div class="card c12">
+      <h2>Reportes <span class="k" id="rangeLabel"></span></h2>
+      <div class="toolbar" id="ranges">
+        <button class="btn" data-r="today">Hoy</button>
+        <button class="btn" data-r="yesterday">Ayer</button>
+        <button class="btn" data-r="week">Esta semana</button>
+        <button class="btn" data-r="lastweek">Semana pasada</button>
+        <button class="btn" data-r="month">Este mes</button>
+        <input type="date" id="dFrom"> <input type="date" id="dTo">
+        <button class="btn" data-r="custom">Aplicar fechas</button>
+      </div>
+      <div class="toolbar">
+        <button class="btn on" id="tabDays">Registro por día</button>
+        <button class="btn" id="tabPeople">Por persona</button>
+        <select id="fAgent"><option value="">Todos los agentes</option></select>
+        <span class="sep"></span>
+        <button class="btn" id="csvCalls">⬇ Llamadas (Excel/CSV)</button>
+        <button class="btn" id="csvPeople">⬇ Por persona (Excel/CSV)</button>
+      </div>
+      <div id="viewDays"></div>
+      <div id="viewPeople" class="hidden scroll"></div>
+    </div>
+
+    <div class="card c8">
+      <h2>Agentes y metas</h2>
+      <div class="cfg">
+        <label>Meta diaria por defecto<input type="number" id="cfgMeta" min="0"></label>
+        <label>Semáforo verde desde (%)<input type="number" id="cfgVerde" min="0"></label>
+        <label>Amarillo desde (%)<input type="number" id="cfgAmarillo" min="0"></label>
+        <button class="btn gold" id="cfgSave">Guardar metas</button><span class="msg" id="cfgMsg"></span>
+      </div>
+      <div class="scroll"><table class="agents">
+        <thead><tr><th>Ext.</th><th>Nombre</th><th>Equipo</th><th>Supervisor</th><th class="num">Meta/día</th><th>Activo</th><th></th></tr></thead>
+        <tbody id="agentsBody"></tbody>
+        <tfoot><tr>
+          <td><input type="text" id="nExt" placeholder="1001" style="width:80px"></td>
+          <td><input type="text" id="nName" placeholder="Nombre"></td>
+          <td><input type="text" id="nTeam" placeholder="Equipo"></td>
+          <td><input type="text" id="nSup" placeholder="Supervisor"></td>
+          <td class="num"><input type="number" id="nMeta" placeholder="def." min="0"></td>
+          <td><input type="checkbox" id="nAct" checked></td>
+          <td><button class="btn small gold" id="nAdd">Agregar</button></td>
+        </tr></tfoot>
+      </table></div>
+      <div class="msg" id="agMsg"></div>
+    </div>
+
+    <div class="card c4">
+      <h2>Actividad en vivo</h2>
+      <div class="feed" id="feed"></div>
+      <div class="toolbar" style="margin-top:12px">
+        <button class="btn small" id="btnReset" title="Borra la lista EN LÍNEA. Si una extensión reaparece sola, está abierta en algún lado.">Limpiar fantasmas</button>
+        <button class="btn small" id="btnDiag">Diagnóstico</button>
+      </div>
+      <pre class="diag hidden" id="diag"></pre>
+    </div>
+  </div>
+</main>
+
+<script>
+(function () {
+  'use strict';
+  var API = '../monitor/collector.php';
+  var KEY = 'allemm_admin_token';
+  var token = '';
+  try { token = localStorage.getItem(KEY) || ''; } catch (e) {}
+
+  var state = { lastId: 0, offset: 0, online: [], active: {}, agents: {}, cfg: {}, range: 'week',
+                view: 'days', calls: [], people: [], meta: null };
+
+  var $ = function (id) { return document.getElementById(id); };
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+  function pad(n) { return (n < 10 ? '0' : '') + n; }
+  function fmtDur(s) { s = +s || 0; var h = Math.floor(s / 3600), m = Math.floor(s % 3600 / 60), r = s % 60; return h ? h + 'h ' + pad(m) + 'm' : m ? m + 'm ' + pad(r) + 's' : r + 's'; }
+  function fmtClock(s) { s = Math.max(0, s | 0); return pad(Math.floor(s / 60)) + ':' + pad(s % 60); }
+  function nowSrv() { return Math.floor((Date.now() + state.offset) / 1000); }
+  function name(ext) { var a = state.agents[ext]; return a && a.nombre ? a.nombre : ''; }
+  function who(ext) { var n = name(ext); return n ? esc(n) + ' <small>' + esc(ext) + '</small>' : 'Ext. ' + esc(ext); }
+  var DIAS = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+  var MESES = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
+  function dayLabel(iso) { var d = new Date(iso + 'T12:00:00'); return DIAS[d.getDay()] + ' ' + d.getDate() + ' ' + MESES[d.getMonth()] + ' ' + d.getFullYear(); }
+
+  function pill(id, cls, text) { var p = $(id); p.className = 'pill ' + (cls || ''); if (text) p.lastChild.textContent = text; }
+
+  function get(params) {
+    var q = 'token=' + encodeURIComponent(token) + '&' + params + '&_=' + Date.now();
+    return fetch(API + '?' + q, { cache: 'no-store' }).then(function (r) {
+      return r.json().catch(function () { return { error: 'http_' + r.status }; }).then(function (j) { j.__status = r.status; return j; });
+    });
+  }
+  function post(body) {
+    body.token = token;
+    return fetch(API, { method: 'POST', cache: 'no-store', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+      .then(function (r) { return r.json().catch(function () { return { error: 'http_' + r.status }; }); });
+  }
+
+  /* ---------- Acceso ---------- */
+  function showGate(msg) { $('gate').classList.remove('hidden'); $('app').classList.add('hidden'); $('tokenMsg').textContent = msg || ''; $('tokenIn').focus(); }
+  function tryToken(t) {
+    token = t;
+    return get('diag=1').then(function (d) {
+      if (d.__status === 403) { showGate('Token incorrecto.'); return false; }
+      if (d.error === 'sin_configurar') { showGate('Falta monitor/db_config.php en el servidor.'); return false; }
+      try { localStorage.setItem(KEY, t); } catch (e) {}
+      $('gate').classList.add('hidden'); $('app').classList.remove('hidden');
+      pill('pDb', d.bd_conecta ? 'ok' : 'bad', d.bd_conecta ? 'Base de datos' : 'Sin base de datos');
+      return true;
+    }).catch(function () { showGate('No se pudo contactar al recolector (' + API + ').'); return false; });
+  }
+  $('tokenBtn').onclick = function () { var t = $('tokenIn').value.trim(); if (t) tryToken(t).then(function (ok) { if (ok) start(); }); };
+  $('tokenIn').onkeydown = function (e) { if (e.key === 'Enter') $('tokenBtn').click(); };
+  $('btnLogout').onclick = function () { try { localStorage.removeItem(KEY); } catch (e) {} location.reload(); };
+
+  /* ---------- En vivo ---------- */
+  function applyEvent(e) {
+    if (e.type === 'llamada_inicio') state.active[e.ext] = { t: e.t, num: e.num, dir: e.dir };
+    else if (e.type === 'llamada_fin' || e.type === 'desconectado' || e.type === 'conectado') delete state.active[e.ext];
+    feedLine(e);
+  }
+  var LABEL = { conectado: 'se conectó', desconectado: 'se desconectó', llamada_inicio: 'inició llamada', llamada_fin: 'terminó llamada' };
+  function feedLine(e) {
+    var d = new Date(e.t * 1000);
+    var extra = e.type.indexOf('llamada') === 0 ? ' · ' + (e.dir === 'entrante' ? '↙ ' : '↗ ') + esc(e.num || '—') + (e.type === 'llamada_fin' ? ' · ' + fmtDur(e.dur) : '') : '';
+    var div = document.createElement('div');
+    div.innerHTML = '<span class="t">' + pad(d.getHours()) + ':' + pad(d.getMinutes()) + ':' + pad(d.getSeconds()) + '</span>' +
+      (name(e.ext) ? esc(name(e.ext)) + ' (' + esc(e.ext) + ')' : 'Ext. ' + esc(e.ext)) + ' ' + (LABEL[e.type] || esc(e.type)) + extra;
+    var f = $('feed'); f.insertBefore(div, f.firstChild);
+    while (f.childNodes.length > 150) f.removeChild(f.lastChild);
+  }
+  function renderLive() {
+    var online = state.online.slice();
+    Object.keys(state.active).forEach(function (x) { if (online.indexOf(x) === -1) delete state.active[x]; });
+    var act = Object.keys(state.active);
+    $('sOnline').textContent = online.length; $('onlineCount').textContent = online.length;
+    $('sActive').textContent = act.length; $('liveCount').textContent = act.length;
+    $('onlineList').innerHTML = online.length ? online.map(function (x) {
+      var c = state.active[x];
+      return '<div class="chip' + (c ? ' call' : '') + '"><span class="dot"></span>' + who(x) + (c ? ' <small>' + fmtClock(nowSrv() - c.t) + '</small>' : '') + '</div>';
+    }).join('') : '<div class="empty">Nadie en línea.</div>';
+    $('liveList').innerHTML = act.length ? '<table><thead><tr><th>Agente</th><th>Dirección</th><th>Número</th><th class="num">Tiempo</th></tr></thead><tbody>' +
+      act.map(function (x) {
+        var c = state.active[x];
+        return '<tr><td>' + who(x) + '</td><td class="' + (c.dir === 'entrante' ? 'dir-in">↙ Entrante' : 'dir-out">↗ Saliente') + '</td><td class="mono">' + esc(c.num || '—') + '</td><td class="num">' + fmtClock(nowSrv() - c.t) + '</td></tr>';
+      }).join('') + '</tbody></table>' : '<div class="empty">Sin llamadas en curso.</div>';
+  }
+  function pollLive() {
+    return get('after=' + state.lastId).then(function (d) {
+      if (d.__status === 403) { showGate('El token cambió en el servidor.'); return; }
+      if (d.error) { pill('pColl', 'bad', 'Recolector: ' + d.error); return; }
+      state.offset = d.now * 1000 - Date.now();
+      state.online = d.online || [];
+      (d.events || []).forEach(function (e) { if (e.id > state.lastId) { applyEvent(e); state.lastId = e.id; } });
+      if (d.seq < state.lastId) state.lastId = d.seq;   // se reinició el archivo
+      pill('pColl', 'ok', 'Recolector');
+      var t = new Date(); pill('pTime', 'ok', 'Actualizado ' + pad(t.getHours()) + ':' + pad(t.getMinutes()) + ':' + pad(t.getSeconds()));
+      renderLive();
+    }).catch(function () { pill('pColl', 'bad', 'Recolector sin respuesta'); });
+  }
+
+  /* ---------- Agentes y metas ---------- */
+  function loadAgents() {
+    return get('agents=1').then(function (d) {
+      if (d.error) { pill('pDb', 'bad', d.error === 'sin_bd' ? 'Sin base de datos' : 'BD: ' + d.error); return; }
+      pill('pDb', 'ok', 'Base de datos');
+      state.agents = {};
+      (d.agentes || []).forEach(function (a) { state.agents[a.extension] = a; });
+      state.cfg = d.config || {};
+      $('cfgMeta').value = state.cfg.meta_diaria_default; $('cfgVerde').value = state.cfg.semaforo_verde; $('cfgAmarillo').value = state.cfg.semaforo_amarillo;
+      renderAgents();
+      var sel = $('fAgent'), cur = sel.value;
+      sel.innerHTML = '<option value="">Todos los agentes</option>' + (d.agentes || []).map(function (a) {
+        return '<option value="' + esc(a.extension) + '">' + esc(a.nombre) + ' (' + esc(a.extension) + ')</option>';
+      }).join('');
+      sel.value = cur;
+      renderLive();
+    });
+  }
+  function renderAgents() {
+    var rows = Object.keys(state.agents).sort().map(function (x) {
+      var a = state.agents[x];
+      return '<tr data-ext="' + esc(x) + '"><td class="mono">' + esc(x) + '</td>' +
+        '<td><input type="text" data-f="nombre" value="' + esc(a.nombre) + '"></td>' +
+        '<td><input type="text" data-f="equipo" value="' + esc(a.equipo || '') + '"></td>' +
+        '<td><input type="text" data-f="supervisor" value="' + esc(a.supervisor || '') + '"></td>' +
+        '<td class="num"><input type="number" min="0" data-f="meta_diaria" placeholder="' + esc(state.cfg.meta_diaria_default) + '" value="' + (a.meta_diaria == null ? '' : esc(a.meta_diaria)) + '"></td>' +
+        '<td><input type="checkbox" data-f="activo"' + (+a.activo ? ' checked' : '') + '></td>' +
+        '<td style="white-space:nowrap"><button class="btn small" data-act="save">Guardar</button> <button class="btn small danger" data-act="del" title="Quitar del directorio (sus llamadas se conservan)">✕</button></td></tr>';
+    });
+    $('agentsBody').innerHTML = rows.join('') || '<tr><td colspan="7" class="empty">Sin agentes. Agrégalos abajo o carga directory.js con setup_db.php.</td></tr>';
+  }
+  function agentMsg(text, ok) { var m = $('agMsg'); m.textContent = text; m.className = 'msg ' + (ok ? 'ok' : 'bad'); setTimeout(function () { m.textContent = ''; }, 4000); }
+  function saveAgent(a) {
+    return post(Object.assign({ action: 'set_agent' }, a)).then(function (r) {
+      if (r.ok) { agentMsg('Guardado: ' + a.extension, true); return loadAgents().then(loadReports); }
+      agentMsg('No se guardó (' + (r.error || 'error') + '). Revisa extensión y nombre.', false);
+    });
+  }
+  $('agentsBody').addEventListener('click', function (e) {
+    var b = e.target.closest('button'); if (!b) return;
+    var tr = b.closest('tr'), ext = tr.getAttribute('data-ext');
+    if (b.getAttribute('data-act') === 'del') {
+      if (!confirm('¿Quitar la extensión ' + ext + ' del directorio? Sus llamadas se conservan.')) return;
+      post({ action: 'delete_agent', extension: ext }).then(function () { agentMsg('Quitado: ' + ext, true); loadAgents().then(loadReports); });
+      return;
+    }
+    var a = { extension: ext };
+    tr.querySelectorAll('[data-f]').forEach(function (i) { a[i.getAttribute('data-f')] = i.type === 'checkbox' ? (i.checked ? 1 : 0) : i.value; });
+    saveAgent(a);
+  });
+  $('nAdd').onclick = function () {
+    var a = { extension: $('nExt').value.trim(), nombre: $('nName').value.trim(), equipo: $('nTeam').value.trim(),
+              supervisor: $('nSup').value.trim(), meta_diaria: $('nMeta').value, activo: $('nAct').checked ? 1 : 0 };
+    if (!a.extension || !a.nombre) { agentMsg('Escribe extensión y nombre.', false); return; }
+    saveAgent(a).then(function () { ['nExt', 'nName', 'nTeam', 'nSup', 'nMeta'].forEach(function (i) { $(i).value = ''; }); });
+  };
+  $('cfgSave').onclick = function () {
+    var vals = { meta_diaria_default: $('cfgMeta').value, semaforo_verde: $('cfgVerde').value, semaforo_amarillo: $('cfgAmarillo').value };
+    Promise.all(Object.keys(vals).map(function (k) { return post({ action: 'set_config', clave: k, valor: vals[k] }); })).then(function (rs) {
+      var ok = rs.every(function (r) { return r.ok; });
+      var m = $('cfgMsg'); m.textContent = ok ? 'Metas guardadas' : 'No se guardó'; m.className = 'msg ' + (ok ? 'ok' : 'bad');
+      setTimeout(function () { m.textContent = ''; }, 4000);
+      loadAgents().then(loadReports);
+    });
+  };
+
+  /* ---------- Reportes ---------- */
+  function rangeParams() {
+    var p = 'range=' + state.range;
+    if (state.range === 'custom') p += '&from=' + $('dFrom').value + '&to=' + $('dTo').value;
+    return p;
+  }
+  function loadReports() {
+    var p = rangeParams(), ext = $('fAgent').value;
+    return Promise.all([get('report=calls&' + p + (ext ? '&ext=' + encodeURIComponent(ext) : '')), get('report=people&' + p), get('report=people&range=today')])
+      .then(function (r) {
+        var calls = r[0], people = r[1], today = r[2];
+        if (calls.error || people.error) {
+          var err = calls.error || people.error;
+          $('viewDays').innerHTML = '<div class="empty">' + (err === 'sin_bd' ? 'Sin base de datos: revisa monitor/db_config.php y abre setup_db.php.' : err === 'rango' ? 'Elige un rango de fechas válido.' : 'Error: ' + esc(err)) + '</div>';
+          $('viewPeople').innerHTML = '';
+          return;
+        }
+        state.calls = calls.calls || []; state.people = people.people || []; state.meta = people;
+        $('rangeLabel').textContent = people.from.slice(0, 16) + ' → ' + people.to.slice(0, 16);
+        var tc = 0, ts = 0; (today.people || []).forEach(function (x) { tc += x.total; ts += x.segundos; });
+        $('sToday').textContent = tc; $('sMin').textContent = Math.round(ts / 60);
+        renderDays(); renderPeople();
+      });
+  }
+  function renderDays() {
+    if (!state.calls.length) { $('viewDays').innerHTML = '<div class="empty">Sin llamadas en este periodo.</div>'; return; }
+    var byDay = {};
+    state.calls.forEach(function (c) { var d = c.inicio.slice(0, 10); (byDay[d] = byDay[d] || []).push(c); });
+    $('viewDays').innerHTML = Object.keys(byDay).sort().reverse().map(function (d, i) {
+      var list = byDay[d], out = 0, inn = 0, secs = 0;
+      list.forEach(function (c) { if (c.direccion === 'entrante') inn++; else out++; secs += +c.duracion; });
+      return '<details class="day"' + (i === 0 ? ' open' : '') + '><summary><b>' + dayLabel(d) + '</b><span class="tag">' + list.length + ' llamadas</span><span class="tag">' + fmtDur(secs) + '</span><span class="tag dir-out">↗ ' + out + '</span><span class="tag dir-in">↙ ' + inn + '</span></summary>' +
+        '<div class="body scroll"><table><thead><tr><th>Hora</th><th>Agente</th><th>Dirección</th><th>Número</th><th class="num">Duración</th></tr></thead><tbody>' +
+        list.map(function (c) {
+          return '<tr><td class="mono">' + c.inicio.slice(11, 16) + '</td><td>' + (c.nombre ? esc(c.nombre) + ' <small class="muted mono">' + esc(c.extension) + '</small>' : 'Ext. ' + esc(c.extension)) + '</td>' +
+            '<td class="' + (c.direccion === 'entrante' ? 'dir-in">↙ Entrante' : 'dir-out">↗ Saliente') + '</td><td class="mono">' + esc(c.numero || '—') + '</td><td class="num">' + fmtDur(c.duracion) + '</td></tr>';
+        }).join('') + '</tbody></table></div></details>';
+    }).join('');
+  }
+  function renderPeople() {
+    var ext = $('fAgent').value;
+    var list = state.people.filter(function (p) { return !ext || p.extension === ext; });
+    if (!list.length) { $('viewPeople').innerHTML = '<div class="empty">Sin datos en este periodo.</div>'; return; }
+    $('viewPeople').innerHTML = '<table><thead><tr><th>#</th><th>Agente</th><th>Equipo</th><th class="num">Llamadas</th><th class="num">↗ Sal.</th><th class="num">↙ Ent.</th><th class="num">Tiempo</th><th class="num">Promedio</th><th class="num">Días</th><th class="num">Meta</th><th>Avance</th><th></th></tr></thead><tbody>' +
+      list.map(function (p, i) {
+        var pct = p.avance == null ? null : p.avance;
+        return '<tr><td class="rank">' + (i + 1) + '</td><td>' + (p.nombre ? esc(p.nombre) + ' <small class="muted mono">' + esc(p.extension) + '</small>' : 'Ext. ' + esc(p.extension)) + '</td>' +
+          '<td>' + esc(p.equipo || '') + '</td><td class="num">' + p.total + '</td><td class="num">' + p.salientes + '</td><td class="num">' + p.entrantes + '</td>' +
+          '<td class="num">' + fmtDur(p.segundos) + '</td><td class="num">' + (p.total ? fmtDur(Math.round(p.segundos / p.total)) : '—') + '</td>' +
+          '<td class="num">' + p.dias_activos + '</td><td class="num">' + (p.meta_total || '—') + '</td>' +
+          '<td>' + (pct == null ? '<span class="muted">—</span>' : '<div class="bar"><i style="width:' + Math.min(100, pct) + '%"></i></div><small class="mono">' + pct + '%</small>') + '</td>' +
+          '<td><span class="sem ' + p.semaforo + '" title="' + p.semaforo + '"></span></td></tr>';
+      }).join('') + '</tbody></table>';
+  }
+  function setView(v) {
+    state.view = v;
+    $('tabDays').classList.toggle('on', v === 'days'); $('tabPeople').classList.toggle('on', v === 'people');
+    $('viewDays').classList.toggle('hidden', v !== 'days'); $('viewPeople').classList.toggle('hidden', v !== 'people');
+  }
+  $('tabDays').onclick = function () { setView('days'); };
+  $('tabPeople').onclick = function () { setView('people'); };
+  $('fAgent').onchange = loadReports;
+  document.querySelectorAll('#ranges [data-r]').forEach(function (b) {
+    b.onclick = function () {
+      var r = b.getAttribute('data-r');
+      if (r === 'custom' && (!$('dFrom').value || !$('dTo').value)) { alert('Elige las dos fechas.'); return; }
+      state.range = r;
+      document.querySelectorAll('#ranges [data-r]').forEach(function (x) { x.classList.toggle('on', x === b); });
+      loadReports();
+    };
+  });
+
+  /* ---------- Excel / CSV ---------- */
+  function csv(name, header, rows) {
+    var q = function (v) { v = v == null ? '' : String(v); return /[",\n;]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; };
+    var text = '﻿' + [header].concat(rows).map(function (r) { return r.map(q).join(','); }).join('\r\n');
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([text], { type: 'text/csv;charset=utf-8' }));
+    a.download = name; document.body.appendChild(a); a.click();
+    setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 1500);
+  }
+  function stamp() { return state.meta ? state.meta.from.slice(0, 10) + '_a_' + state.meta.to.slice(0, 10) : 'reporte'; }
+  $('csvCalls').onclick = function () {
+    csv('allemm_llamadas_' + stamp() + '.csv', ['Fecha', 'Hora', 'Extensión', 'Agente', 'Dirección', 'Número', 'Duración (seg)', 'Duración'],
+      state.calls.map(function (c) { return [c.inicio.slice(0, 10), c.inicio.slice(11, 19), c.extension, c.nombre || '', c.direccion, c.numero || '', c.duracion, fmtDur(c.duracion)]; }));
+  };
+  $('csvPeople').onclick = function () {
+    csv('allemm_por_persona_' + stamp() + '.csv', ['Lugar', 'Extensión', 'Agente', 'Equipo', 'Supervisor', 'Llamadas', 'Salientes', 'Entrantes', 'Tiempo (seg)', 'Tiempo', 'Días activos', 'Meta del periodo', 'Avance %', 'Semáforo'],
+      state.people.map(function (p, i) { return [i + 1, p.extension, p.nombre || '', p.equipo || '', p.supervisor || '', p.total, p.salientes, p.entrantes, p.segundos, fmtDur(p.segundos), p.dias_activos, p.meta_total, p.avance == null ? '' : p.avance, p.semaforo]; }));
+  };
+
+  /* ---------- Mantenimiento ---------- */
+  $('btnReset').onclick = function () {
+    if (!confirm('¿Limpiar la lista EN LÍNEA? Los que sigan abiertos reaparecen solos en segundos.')) return;
+    get('reset=presence').then(pollLive);
+  };
+  $('btnDiag').onclick = function () {
+    get('diag=1').then(function (d) { delete d.__status; var el = $('diag'); el.textContent = JSON.stringify(d, null, 2); el.classList.remove('hidden'); });
+  };
+
+  /* ---------- Arranque ---------- */
+  var timers = [];
+  function start() {
+    timers.forEach(clearInterval); timers = [];
+    document.querySelector('#ranges [data-r="week"]').classList.add('on');
+    loadAgents().then(function () { return pollLive(); }).then(loadReports);
+    timers.push(setInterval(pollLive, 3000));
+    timers.push(setInterval(renderLive, 1000));
+    timers.push(setInterval(loadReports, 60000));
+  }
+  if (token) tryToken(token).then(function (ok) { if (ok) start(); }); else showGate('');
+})();
+</script>
+</body>
+</html>

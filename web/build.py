@@ -2,7 +2,9 @@
 
 Toma la MISMA interfaz que el .exe y el APK (allemmsip/static) y le agrega:
   - el motor web (JsSIP sobre WSS + WebRTC): web/static/js/web-engine.js
+  - js/allemm-config.js: conmutador y recolector (se edita en el servidor)
   - manifest, iconos y service worker para "Agregar a pantalla de inicio"
+  - monitor/ (recolector PHP + MySQL) y admin/ (panel): web/server
 
 Uso:
     python web/build.py [carpeta_salida]        (por defecto dist/web)
@@ -24,6 +26,10 @@ ROOT = Path(__file__).resolve().parent.parent
 SHARED = ROOT / "allemmsip" / "static"
 OVERLAY = ROOT / "web" / "static"
 SW_TEMPLATE = ROOT / "web" / "sw.template.js"
+# Monitoreo (PHP + MySQL) y panel de administración: van junto a la app.
+SERVER = ROOT / "web" / "server"
+# Nunca se empaquetan: credenciales y datos del servidor.
+SERVER_SKIP = {"monitor/db_config.php", "monitor/monitor_data.php", "monitor/monitor_data.php.lock"}
 
 # Solo sirven en el .exe / APK.
 SKIP = {"js/android.js", "img/icon.ico"}
@@ -47,7 +53,8 @@ HEAD = f"""    <meta http-equiv="Content-Security-Policy" content="{CSP}">
     <link rel="stylesheet" href="css/web.css">
 """
 
-ENGINE_SCRIPTS = """    <script src="js/lib/jssip.min.js"></script>
+ENGINE_SCRIPTS = """    <script src="js/allemm-config.js"></script>
+    <script src="js/lib/jssip.min.js"></script>
     <script src="js/web-engine.js"></script>
     <script src="js/pwa.js"></script>
 """
@@ -106,6 +113,12 @@ def build(out: Path) -> str:
     sw = SW_TEMPLATE.read_text(encoding="utf-8")
     sw = sw.replace("__VERSION__", version).replace("__FILES__", json.dumps(precache, indent=2))
     (out / "sw.js").write_text(sw, encoding="utf-8")
+    for f in sorted(SERVER.rglob("*")):
+        rel = f.relative_to(SERVER).as_posix()
+        if f.is_file() and rel not in SERVER_SKIP:
+            dst = out / rel
+            dst.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(f, dst)
     # GitHub Pages: no procesar con Jekyll (respeta carpetas y archivos tal cual).
     (out / ".nojekyll").write_text("", encoding="utf-8")
     return version

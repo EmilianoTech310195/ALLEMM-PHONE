@@ -24,7 +24,15 @@ self.addEventListener('fetch', (event) => {
     const req = event.request;
     if (req.method !== 'GET') return;
     const url = new URL(req.url);
-    if (url.origin !== self.location.origin) return;     // WSS, STUN, panel: directo a la red
+    if (url.origin !== self.location.origin) return;     // WSS, STUN: directo a la red
+    const rel = url.pathname.slice(new URL(self.registration.scope).pathname.length);
+    if (rel.startsWith('monitor/') || rel.startsWith('admin/')) return;   // recolector y panel: siempre red
+
+    // Configuración del sitio (conmutador, recolector): la del servidor manda.
+    if (rel === 'js/allemm-config.js') {
+        event.respondWith(fetch(req, { cache: 'no-store' }).catch(() => caches.match(req, { ignoreSearch: true })));
+        return;
+    }
 
     // La página: primero la red (para tomar versiones nuevas), si no hay, la copia.
     if (req.mode === 'navigate') {
