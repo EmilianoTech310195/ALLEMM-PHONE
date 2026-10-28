@@ -1,4 +1,18 @@
-# ALLEMM SIP — softphone de escritorio (.exe) 📞
+# ALLEMM SIP — teléfono SIP en tres versiones 📞
+
+| Versión | Para quién | Cómo se usa | Dónde se descarga | Código |
+|---|---|---|---|---|
+| **Windows (.exe)** | Computadoras | **Se descarga e instala** | *Actions → Windows (.exe) → Artifacts →* `ALLEMM-SIP-Windows-instalador` | `allemmsip/`, `installer/` |
+| **Android (.apk)** | Celulares Android | **Se descarga e instala** | *Actions → Android (.apk) → Artifacts →* `ALLEMM-SIP-Android` | `android/` |
+| **Web** | iPhone y cualquier navegador | **No se instala**: se sube al servidor y los agentes la abren con su enlace | *Actions → Web → Artifacts →* `ALLEMM-SIP-Web` | `web/` |
+
+Las tres comparten la misma pantalla (`allemmsip/static`); cambia el motor:
+el `.exe` y el APK hablan SIP directo por UDP con PJSIP, la Web usa JsSIP
+sobre WSS con audio WebRTC (un navegador no puede hablar SIP por UDP).
+
+---
+
+# 1. Versión Windows (.exe) — se descarga e instala
 
 Cliente SIP para Windows al estilo **MicroSIP**: habla SIP **por UDP, TCP o
 TLS directo con el PBX** (sin WebSocket ni navegador) y usa la tarjeta de
@@ -15,14 +29,14 @@ historial, notas, transferencia, identificador de país) y le cambia el motor:
 ## Instalar (usuarios)
 
 Descarga **`AllemmSIP-Setup.exe`** desde *Releases* (o desde *Actions →
-Compilar AllemmSIP.exe → Artifacts*) y ejecútalo. La pantalla de inicio es
+Windows (.exe) → Artifacts → `ALLEMM-SIP-Windows-instalador`*) y ejecútalo. La pantalla de inicio es
 la misma del `.exe` anterior: **Servidor SIP** (`host:puerto`, viene
 precargado), **Extensión** y **Contraseña**. Son los mismos datos que en
 MicroSIP: servidor y dominio con puerto, transporte UDP, sin cifrado ni ICE,
 registro cada 300 s. En **Ajustes** se puede cambiar transporte, micrófono,
 altavoz y modo DTMF.
 
-También hay una versión portable (`AllemmSIP-portable.zip`).
+También hay una versión portable (artefacto `ALLEMM-SIP-Windows-portable`).
 
 ### Click-to-call
 
@@ -147,7 +161,7 @@ El instalador además registra la regla del **Firewall de Windows** para
 `AllemmSIP.exe` (entrada y salida), para que las respuestas SIP y el audio
 RTP no se bloqueen en ninguna PC. Por eso pide permisos de administrador.
 
-## Android (APK de pruebas)
+# 2. Versión Android (.apk) — se descarga e instala
 
 La carpeta `android/` es la app para celular. Usa **la misma interfaz**
 (`allemmsip/static`, empaquetada dentro del APK) y **el mismo motor PJSIP**,
@@ -163,8 +177,8 @@ servicios de notificaciones de terceros.
 | Pantalla (WebView) | `MainActivity.kt` |
 | Compilar PJSIP con el NDK | `tools/build-pjsip-android.sh` |
 
-**Descargar:** GitHub → *Actions* → *Compilar APK Android* → *Artifacts* →
-`AllemmSIP-android`. En el teléfono: abrir el `.apk`, permitir "instalar apps
+**Descargar:** GitHub → *Actions* → *Android (.apk)* → *Artifacts* →
+`ALLEMM-SIP-Android`. En el teléfono: abrir el `.apk`, permitir "instalar apps
 desconocidas" para el navegador o el administrador de archivos, instalar.
 
 **Primer uso:** aceptar micrófono y notificaciones, y cuando lo pida, permitir
@@ -195,7 +209,7 @@ bash tools/build-pjsip-android.sh      # una vez: PJSIP para Android
 cd android && ./gradlew assembleRelease
 ```
 
-## WebApp (iPhone y navegador)
+# 3. Versión Web — no se instala: se usa desde el navegador
 
 Para quien no puede instalar el `.exe` ni el APK (iPhone, iPad, Mac,
 cualquier navegador). Usa **la misma interfaz** (`allemmsip/static`), pero el
@@ -227,8 +241,8 @@ recolector se configuran en `js/allemm-config.js` y `monitor/db_config.php`
 bloquea el micrófono):
 - **GitHub Pages:** *Settings → Pages → Source: GitHub Actions* (una sola vez).
   Cada push la publica en `https://<usuario>.github.io/ALLEMM-PHONE/`.
-- **Servidor propio:** GitHub → *Actions* → *WebApp* → artefacto
-  `AllemmSIP-web`; subir su contenido tal cual.
+- **Servidor propio:** GitHub → *Actions* → *Web* → artefacto
+  `ALLEMM-SIP-Web`; subir su contenido tal cual.
 - Local: `python web/build.py` → carpeta `dist/web`.
 
 **En el iPhone:** abrir el enlace en **Safari** → *Compartir* → *Agregar a

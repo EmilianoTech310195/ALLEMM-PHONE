@@ -1,4 +1,4 @@
-name: Compilar APK Android
+name: "Android (.apk) — se descarga e instala"
 
 on:
   push:
@@ -67,5 +67,5 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          name: AllemmSIP-android
+          name: ALLEMM-SIP-Android
           path: AllemmSIP-android.apk

@@ -1,4 +1,4 @@
-name: WebApp (iPhone / navegador)
+name: "Web — se sube al servidor y se usa en el navegador"
 
 on:
   push:
@@ -55,7 +55,7 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          name: AllemmSIP-web
+          name: ALLEMM-SIP-Web
           path: dist/web
           include-hidden-files: true
           if-no-files-found: error

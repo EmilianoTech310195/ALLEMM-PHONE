@@ -1,4 +1,4 @@
-name: Compilar AllemmSIP.exe para Windows
+name: "Windows (.exe) — se descarga e instala"
 
 on:
   push:
@@ -141,12 +141,12 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          name: AllemmSIP-Setup
+          name: ALLEMM-SIP-Windows-instalador
           path: installer-out/AllemmSIP-Setup.exe
 
       - uses: actions/upload-artifact@v4
         with:
-          name: AllemmSIP-portable
+          name: ALLEMM-SIP-Windows-portable
           path: AllemmSIP-portable.zip
 
       - name: Publicar release

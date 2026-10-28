@@ -1,5 +1,9 @@
 # Telefonía web ALLEMM — Despliegue
 
+> Versión **Web**: no se instala en los equipos. Se sube una vez al servidor y
+> los agentes la abren desde el navegador con su enlace. (El `.exe` de Windows
+> y el APK de Android son las versiones que se descargan e instalan.)
+
 Sistema independiente de UVAC: su propio conmutador, servidor, base de datos,
 tokens y agentes. Nada de aquí apunta al conmutador ni al servidor de UVAC.
 
@@ -29,7 +33,7 @@ tu-servidor/telefonia/
 
 ## 2. Subir los archivos
 
-Subir el contenido del paquete `AllemmSIP-web` a una carpeta con **HTTPS**
+Subir el contenido del paquete `ALLEMM-SIP-Web` a una carpeta con **HTTPS**
 (p. ej. `https://allemm.com.mx/telefonia/`). Sin HTTPS el navegador bloquea el micrófono.
 
 ## 3. Configurar (solo dos archivos)
