@@ -15,7 +15,7 @@ object Settings {
     private const val KEY = "settings"
 
     val DEFAULTS: JSONObject get() = JSONObject().apply {
-        put("sipServer", "pbx18879.pbxhosting.com.mx")
+        put("sipServer", "pbx20494.pbxhosting.com.mx")   // conmutador de ALLEMM
         put("sipPort", 49999)
         put("transport", "udp")
         put("autoTransportFallback", true)

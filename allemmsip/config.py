@@ -29,8 +29,8 @@ VERSION = "1.0.0"
 
 DEFAULTS: dict[str, Any] = {
     # Conexión SIP
-    "sipServer": "pbx18879.pbxhosting.com.mx",   # mismo valor que el .exe anterior y el manual de MicroSIP
-    "sipPort": 49999,
+    "sipServer": "pbx20494.pbxhosting.com.mx",   # conmutador de ALLEMM
+    "sipPort": 49999,               # UDP del conmutador (mismo esquema de pbxhosting; confirmar en FreePBX)
     "transport": "udp",             # udp | tcp | tls
     "autoTransportFallback": True,  # si UDP no responde en registerTimeout, pasar a TCP
     "registerExpires": 300,         # MicroSIP: "Refresco de registro" 300

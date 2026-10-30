@@ -135,7 +135,7 @@ def test_single_instance_handoff(tmp_path):
 
 
 @pytest.mark.parametrize("text,expected", [
-    ("pbx18879.pbxhosting.com.mx:49999", ("pbx18879.pbxhosting.com.mx", 49999)),
+    ("pbx20494.pbxhosting.com.mx:49999", ("pbx20494.pbxhosting.com.mx", 49999)),
     ("  pbx.example.com ", ("pbx.example.com", 5060)),
     ("sip:pbx.example.com:5062;transport=udp", ("pbx.example.com", 5062)),
     ("[2001:db8::1]:5080", ("2001:db8::1", 5080)),
@@ -246,3 +246,8 @@ def test_stun_and_change_classification(tmp_path, monkeypatch):
     assert {"stunEnabled", "stunServer", "stunPort"} <= ch
     assert any(k in config.RESTART_KEYS for k in ch)
     assert not any(k in config.REREGISTER_KEYS for k in config.changed_keys(s2, config.save_settings({"voicemailNumber": "123"})))
+
+
+def test_defaults_point_to_allemm_pbx_not_uvac():
+    from allemmsip import config
+    assert config.DEFAULTS["sipServer"] == "pbx20494.pbxhosting.com.mx"

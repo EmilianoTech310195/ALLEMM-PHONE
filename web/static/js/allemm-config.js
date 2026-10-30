@@ -5,12 +5,10 @@
    al conmutador (PBX) y al recolector de monitoreo de ALLEMM.
    No hace falta recompilar: se guarda y los teléfonos lo toman al abrir.
 
-   ⚠️ Sin conmutador de ALLEMM todavía: sipServer queda vacío y el agente
-   tendría que escribirlo en el inicio de sesión.
    ======================================== */
 window.ALLEMM_WEB_CONFIG = {
     // Conmutador de ALLEMM (lo entrega el proveedor del PBX)
-    sipServer: '',                 // ej. 'pbxXXXXX.pbxhosting.com.mx'
+    sipServer: 'pbx20494.pbxhosting.com.mx',
     wssPort: 8089,                 // puerto WSS (8089, o 443 si el proveedor lo ofrece)
     wssPath: '/ws',
 

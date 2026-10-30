@@ -23,13 +23,17 @@ tu-servidor/telefonia/
 └── admin/admin.html        ← panel de administración
 ```
 
-## 1. Lo que entrega el proveedor del conmutador (bloqueante)
+## 1. Conmutador de ALLEMM
 
-1. Servidor WSS: `pbxXXXXX.pbxhosting.com.mx` (el de ALLEMM).
-2. Puerto WSS (normalmente `8089`; pedir `443` si lo ofrecen: casi ninguna red lo bloquea).
-3. Ruta (normalmente `/ws`).
-4. Extensiones y contraseñas SIP de los agentes, con **WebRTC habilitado**.
-5. Certificado SSL válido en el conmutador (WSS/WebRTC lo exige).
+Servidor: **`pbx20494.pbxhosting.com.mx`** (ya puesto en `js/allemm-config.js`,
+en el `.exe` y en el APK).
+
+Lo que hay que confirmar con el proveedor o en el panel:
+
+1. Puerto WSS (normalmente `8089`; pedir `443` si lo ofrecen: casi ninguna red lo bloquea).
+2. Ruta (normalmente `/ws`).
+3. Extensiones y contraseñas SIP de los agentes, con **WebRTC habilitado**.
+4. Certificado SSL válido en el conmutador (WSS/WebRTC lo exige).
 
 ## 2. Subir los archivos
 
@@ -41,7 +45,7 @@ Subir el contenido del paquete `ALLEMM-SIP-Web` a una carpeta con **HTTPS**
 **`js/allemm-config.js`**: el conmutador y el recolector.
 ```js
 window.ALLEMM_WEB_CONFIG = {
-    sipServer: 'pbxXXXXX.pbxhosting.com.mx',
+    sipServer: 'pbx20494.pbxhosting.com.mx',
     wssPort: 8089,
     wssPath: '/ws',
     monitorUrl: 'monitor/collector.php',
