@@ -150,7 +150,16 @@ async function inboundBytes(page) {
     ok(await bad.evaluate(() => !UvacSIP.isRegistered), 'no registra');
     ok(badRegs.length === 1, 'un solo intento con la contraseña mala (hubo ' + badRegs.length + ')');
 
-    console.log('12. Descargar log desde Ajustes');
+    console.log('12. Troncal sin canal (503, Q.850 34): mensaje claro, no "Error desconocido"');
+    await a.evaluate(() => { try { UvacAlerts.close(); } catch (e) {} });
+    await a.fill('#numberDisplay', '5034');
+    await a.click('#callBtn');
+    ok(await waitFor(async () => /línea de salida/.test(await a.textContent('#alertTitle').catch(() => '')), 8000),
+        'alerta: ' + (await a.textContent('#alertTitle').catch(() => '')));
+    ok(await waitFor(async () => !(await a.evaluate(() => !!UvacSIP.currentSession)), 5000), '1001 queda libre');
+    await a.evaluate(() => { try { UvacAlerts.close(); } catch (e) {} });
+
+    console.log('13. Descargar log desde Ajustes');
     const [dl] = await Promise.all([a.waitForEvent('download', { timeout: 5000 }).catch(() => null),
         a.evaluate(() => window.pywebview.api.open_log_folder())]);
     ok(!!dl && /allemmsip-web-.*\.log$/.test(dl.suggestedFilename()), 'se descarga ' + (dl ? dl.suggestedFilename() : '(nada)'));

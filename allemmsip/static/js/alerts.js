@@ -198,6 +198,31 @@ const UvacAlerts = {
             retryable: false
         },
 
+        // El PBX recibió la llamada pero su troncal no tiene canal (503 / Q.850 34)
+        'CALL_NO_LINE': {
+            icon: '📡',
+            title: 'El conmutador no tiene línea de salida',
+            message: 'La llamada llegó al conmutador, pero su troncal no tiene canal disponible (código 503).',
+            causes: [
+                'La troncal del proveedor no está registrada o configurada',
+                'Sin canales libres o sin saldo para llamadas externas',
+                'La ruta de salida no acepta ese formato de número',
+                'Prueba *43 (eco) o una extensión: si funcionan, la app está bien'
+            ],
+            retryable: false
+        },
+        'CALL_NOT_FOUND': {
+            icon: '🔢',
+            title: 'Número no encontrado',
+            message: 'El conmutador no encontró ese número o extensión.',
+            causes: [
+                'Revisa el número (10 dígitos para celulares y fijos)',
+                'La extensión no existe',
+                'La ruta de salida no acepta ese formato de número'
+            ],
+            retryable: false
+        },
+
         // Llamada entrante que ya fue atendida por otro agente (ring group / cola)
         'CALL_TAKEN': {
             icon: '✅',
@@ -411,6 +436,17 @@ const UvacAlerts = {
         };
 
         return map[cause] || 'UNKNOWN';
+    },
+
+    /**
+     * Causa de una llamada fallida → código del catálogo (usa también el código SIP).
+     */
+    mapCallFailure: function(cause, code) {
+        code = parseInt(code, 10) || 0;
+        if (code === 503 || cause === 'Service Unavailable') return 'CALL_NO_LINE';
+        if (code === 404 || code === 484 || cause === 'Not Found' || cause === 'Address Incomplete') return 'CALL_NOT_FOUND';
+        if (cause === 'SIP Failure Code' || (code >= 400 && code < 700)) return 'CALL_FAILED';
+        return this.mapJsSipError(cause);
     },
 
     /**

@@ -142,6 +142,10 @@ async def handle(ws):
                 continue
 
             user = uri_user(ruri)
+            if method == "INVITE" and user == "5034":
+                # Simula una troncal sin canal: 503 con Q.850 34 (como FreePBX)
+                await send(ws, response(headers, 503, "Service Unavailable", "Reason: Q.850;cause=34"), "out")
+                continue
             dest = contacts.get(user) if ".invalid" in ruri else aor.get(user)
             if dest is None:
                 dest = aor.get(user) or contacts.get(user)

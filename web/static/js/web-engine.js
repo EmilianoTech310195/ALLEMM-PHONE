@@ -330,7 +330,7 @@
                 (elsewhere || e.cause === 'Canceled');
             log('Llamada falló:', e.cause, code || '', reason, taken ? '(la tomó un compañero)' : '');
             finishCall();
-            emit('call_failed', { cause: e.cause || 'Canceled', code: code || null, taken_by_colleague: taken });
+            emit('call_failed', { cause: e.cause || 'Canceled', code: code || null, reason: reason, taken_by_colleague: taken });
         });
     }
 
@@ -474,7 +474,9 @@
         var away = Date.now() - hiddenSince;
         hiddenSince = 0;
         if (!creds || session) return;
-        if (!ua || !ua.isConnected() || away > 20000) {
+        // iPhone/Android congelan la página y matan el WebSocket sin avisar;
+        // en computadora la pestaña sigue viva: basta con refrescar el registro.
+        if (!ua || !ua.isConnected() || (IS_MOBILE && away > 20000)) {
             log('De vuelta en primer plano tras', Math.round(away / 1000), 's: reconectando');
             startUA();
         } else if (registered) {

@@ -357,7 +357,7 @@ AllemmBridge.on('call_failed', function (d) {
     if (d.taken_by_colleague) {
         UvacAlerts.show('CALL_TAKEN', { details: { cause: cause } });
     } else if (cause !== 'Canceled' && cause !== 'BYE') {
-        UvacAlerts.show(UvacAlerts.mapJsSipError(cause), { details: { cause: cause, code: d.code } });
+        UvacAlerts.show(UvacAlerts.mapCallFailure(cause, d.code), { details: { cause: cause, code: d.code, reason: d.reason } });
     }
     if (UvacSIP.onCallFailed) UvacSIP.onCallFailed(cause);
 });
