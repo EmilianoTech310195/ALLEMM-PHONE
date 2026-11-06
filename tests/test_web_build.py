@@ -1,4 +1,4 @@
-"""La compilación de la WebApp (web/build.py) arma una PWA válida."""
+"""La compilación de la versión Web (web/build.py) arma un sitio propio de ALLEMM."""
 
 import json
 import re
@@ -78,3 +78,16 @@ def test_site_config_loads_first_and_has_no_uvac_pbx(tmp_path):
     assert scripts.index("js/allemm-config.js") < scripts.index("js/web-engine.js")
     for f in ("js/allemm-config.js", "js/web-engine.js"):
         assert "pbx18879" not in (out / f).read_text(encoding="utf-8")
+
+
+def test_web_is_its_own_project_without_uvac_or_desktop_code(tmp_path):
+    out = _build(tmp_path)
+    for f in out.rglob("*"):
+        if f.suffix not in (".js", ".html", ".css", ".php") or f.name == "jssip.min.js":
+            continue
+        text = f.read_text(encoding="utf-8")
+        rel = f.relative_to(out).as_posix()
+        assert "uvac" not in text.lower(), f"queda 'uvac' en {rel}"
+        assert "pywebview" not in text, f"queda código de escritorio en {rel}"
+    app = (out / "js" / "app.js").read_text(encoding="utf-8")
+    assert "TRUSTED_REFERRERS: ['allemm.com.mx']" in app

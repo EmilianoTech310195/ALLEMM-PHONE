@@ -33,7 +33,7 @@ const UvacApp = {
     // Si el link ?call= viene de estos dominios (o subdominios), marcamos
     // solo. Si viene de cualquier otro lado (WhatsApp, email, link copiado),
     // pedimos confirmación al usuario antes de marcar.
-    TRUSTED_REFERRERS: ['uvaconline.com.mx'],
+    TRUSTED_REFERRERS: ['allemm.com.mx'],
 
     /**
      * Inicializar la app
@@ -64,7 +64,7 @@ const UvacApp = {
      * Leer el parámetro ?call=NUMERO de la URL (click-to-call desde CRM/cotizador).
      * No marca todavía: solo guarda el número. El marcado real ocurre en
      * onRegistered (cuando la línea SIP ya está lista), vía _handleAutoCall().
-     * Ejemplo de uso: https://uvaconline.com.mx/telefonia/?call=2295125192
+     * Ejemplo de uso: https://ecom.allemm.com.mx/?call=2295125192
      */
     _readCallParam: function() {
         try {

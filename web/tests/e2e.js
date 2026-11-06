@@ -77,7 +77,7 @@ async function inboundBytes(page) {
     const regs = msgs().filter((m) => m.dir === 'in' && m.first.startsWith('REGISTER'));
     ok(regs.some((m) => /Authorization: Digest/.test(m.msg)), 'REGISTER se reintenta con Digest tras el 401');
     ok(regs.some((m) => /Expires: 300|expires=300/.test(m.msg)), 'registro cada 300 s');
-    const info = await a.evaluate(() => window.pywebview.api.app_info());
+    const info = await a.evaluate(() => window.AllemmEngine.app_info());
     ok(info.platform === 'web' && info.engineAvailable, 'motor web activo (JsSIP)');
 
     console.log('2. 1001 llama a 1002, contesta, hay audio en ambos sentidos');
@@ -95,7 +95,7 @@ async function inboundBytes(page) {
     const keyVisible = await a.$('#keypad .dial-key[data-key="5"]');
     if (keyVisible) await a.click('#keypad .dial-key[data-key="5"]').catch(() => {});
     if (!(await waitFor(async () => msgs().some((m) => m.first.startsWith('INFO') && /Signal=5/.test(m.msg)), 2000))) {
-        await a.evaluate(() => UvacSIP.sendDTMF('5'));
+        await a.evaluate(() => AllemmSIP.sendDTMF('5'));
     }
     ok(await waitFor(async () => msgs().some((m) => m.first.startsWith('INFO') && /Signal=5/.test(m.msg)), 5000), 'INFO con Signal=5 enviado');
 
@@ -107,61 +107,61 @@ async function inboundBytes(page) {
     ok(await waitFor(() => a.evaluate(() => window.__pcs.every((pc) => pc.getSenders().every((s) => !s.track || s.track.enabled))), 3000), 'micrófono de 1001 encendido otra vez');
 
     console.log('5. Retener (re-INVITE sendonly) y reanudar');
-    await a.evaluate(() => window.pywebview.api.sip_hold(true));
+    await a.evaluate(() => window.AllemmEngine.sip_hold(true));
     ok(await waitFor(async () => msgs().some((m) => m.first.startsWith('INVITE') && /a=sendonly/.test(m.msg)), 5000), 're-INVITE con a=sendonly');
-    await a.evaluate(() => window.pywebview.api.sip_hold(false));
+    await a.evaluate(() => window.AllemmEngine.sip_hold(false));
     ok(await waitFor(async () => msgs().filter((m) => m.first.startsWith('INVITE') && m.dir === 'in').length >= 3, 5000), 're-INVITE para reanudar');
 
     console.log('6. Ocupado: 1003 llama a 1002 durante la llamada → 486');
     await c.fill('#numberDisplay', '1002');
     await c.click('#callBtn');
     ok(await waitFor(async () => msgs().some((m) => m.first.startsWith('SIP/2.0 486')), 8000), '1002 contesta 486 Busy Here');
-    ok(await waitFor(async () => !(await c.evaluate(() => !!UvacSIP.currentSession)), 8000), '1003 queda libre otra vez');
+    ok(await waitFor(async () => !(await c.evaluate(() => !!AllemmSIP.currentSession)), 8000), '1003 queda libre otra vez');
 
     console.log('7. Transferencia (REFER)');
-    await b.evaluate(() => UvacSIP.transfer('1003'));
+    await b.evaluate(() => AllemmSIP.transfer('1003'));
     ok(await waitFor(async () => msgs().some((m) => m.first.startsWith('REFER') && /Refer-To: <?sip:1003@/.test(m.msg)), 5000), 'REFER a 1003 enviado y aceptado (202)');
 
     console.log('8. Colgar desde 1002');
-    await b.evaluate(() => UvacSIP.hangup());
+    await b.evaluate(() => AllemmSIP.hangup());
     ok(await waitFor(async () => msgs().some((m) => m.first.startsWith('BYE')), 5000), 'BYE enviado');
-    ok(await waitFor(async () => !(await a.evaluate(() => !!UvacSIP.currentSession)) && !(await b.evaluate(() => !!UvacSIP.currentSession)), 5000), 'ambos quedan libres');
+    ok(await waitFor(async () => !(await a.evaluate(() => !!AllemmSIP.currentSession)) && !(await b.evaluate(() => !!AllemmSIP.currentSession)), 5000), 'ambos quedan libres');
 
     console.log('9. Llamada sin contestar: 1001 cuelga mientras suena (CANCEL)');
     await a.fill('#numberDisplay', '1003');
     await a.click('#callBtn');
     ok(await waitFor(() => visible(c, '#answerBtn'), 8000), '1003 ve la llamada');
     await sleep(800);
-    await a.evaluate(() => UvacSIP.hangup());
+    await a.evaluate(() => AllemmSIP.hangup());
     ok(await waitFor(async () => msgs().some((m) => m.first.startsWith('CANCEL')), 5000), 'CANCEL enviado');
-    ok(await waitFor(async () => !(await c.evaluate(() => !!UvacSIP.currentSession)), 5000), 'a 1003 se le quita la llamada');
+    ok(await waitFor(async () => !(await c.evaluate(() => !!AllemmSIP.currentSession)), 5000), 'a 1003 se le quita la llamada');
 
     console.log('10. Ajustes: cambiar "Registro cada" vuelve a registrar al momento');
-    const res = await a.evaluate(() => window.pywebview.api.save_settings({ registerExpires: 120 }));
+    const res = await a.evaluate(() => window.AllemmEngine.save_settings({ registerExpires: 120 }));
     ok(res._applied === 'reregistered', 'save_settings → reregistered');
     ok(await waitFor(async () => msgs().some((m) => m.first.startsWith('REGISTER') && /Expires: 120|expires=120/.test(m.msg)), 8000), 'REGISTER nuevo con Expires 120');
-    ok(await waitFor(() => a.evaluate(() => UvacSIP.isRegistered), 8000), '1001 sigue registrado');
+    ok(await waitFor(() => a.evaluate(() => AllemmSIP.isRegistered), 8000), '1001 sigue registrado');
 
     console.log('11. Contraseña equivocada: no se reintenta en bucle (evita bloqueo del conmutador)');
     const t0 = Date.now() / 1000;
     const bad = await client(browser, '1002', 'mala');
     await sleep(6000);
     const badRegs = msgs().filter((m) => m.t > t0 && m.dir === 'in' && m.first.startsWith('REGISTER') && /Authorization:[^\r]*username="1002"/.test(m.msg));
-    ok(await bad.evaluate(() => !UvacSIP.isRegistered), 'no registra');
+    ok(await bad.evaluate(() => !AllemmSIP.isRegistered), 'no registra');
     ok(badRegs.length === 1, 'un solo intento con la contraseña mala (hubo ' + badRegs.length + ')');
 
     console.log('12. Troncal sin canal (503, Q.850 34): mensaje claro, no "Error desconocido"');
-    await a.evaluate(() => { try { UvacAlerts.close(); } catch (e) {} });
+    await a.evaluate(() => { try { AllemmAlerts.close(); } catch (e) {} });
     await a.fill('#numberDisplay', '5034');
     await a.click('#callBtn');
     ok(await waitFor(async () => /línea de salida/.test(await a.textContent('#alertTitle').catch(() => '')), 8000),
         'alerta: ' + (await a.textContent('#alertTitle').catch(() => '')));
-    ok(await waitFor(async () => !(await a.evaluate(() => !!UvacSIP.currentSession)), 5000), '1001 queda libre');
-    await a.evaluate(() => { try { UvacAlerts.close(); } catch (e) {} });
+    ok(await waitFor(async () => !(await a.evaluate(() => !!AllemmSIP.currentSession)), 5000), '1001 queda libre');
+    await a.evaluate(() => { try { AllemmAlerts.close(); } catch (e) {} });
 
     console.log('13. Descargar log desde Ajustes');
     const [dl] = await Promise.all([a.waitForEvent('download', { timeout: 5000 }).catch(() => null),
-        a.evaluate(() => window.pywebview.api.open_log_folder())]);
+        a.evaluate(() => window.AllemmEngine.download_log())]);
     ok(!!dl && /allemmsip-web-.*\.log$/.test(dl.suggestedFilename()), 'se descarga ' + (dl ? dl.suggestedFilename() : '(nada)'));
 
     await browser.close();

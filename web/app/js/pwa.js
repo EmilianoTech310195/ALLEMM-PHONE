@@ -18,7 +18,7 @@
     if ('serviceWorker' in navigator && window.isSecureContext) {
         window.addEventListener('load', function () {
             navigator.serviceWorker.register('sw.js').catch(function (err) {
-                if (window.uvacWarn) uvacWarn('Service worker no registrado:', err && err.message);
+                if (window.allemmWarn) allemmWarn('Service worker no registrado:', err && err.message);
             });
         });
         // Versión nueva publicada: recargar en cuanto no haya llamada.
@@ -29,7 +29,7 @@
             if (!hadController) { hadController = true; return; }
             if (reloading || !navigator.serviceWorker.controller) return;
             var tryReload = function () {
-                if (typeof UvacSIP !== 'undefined' && UvacSIP.currentSession) { setTimeout(tryReload, 5000); return; }
+                if (typeof AllemmSIP !== 'undefined' && AllemmSIP.currentSession) { setTimeout(tryReload, 5000); return; }
                 reloading = true;
                 location.reload();
             };

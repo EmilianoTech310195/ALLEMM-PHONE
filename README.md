@@ -6,9 +6,10 @@
 | **Android (.apk)** | Celulares Android | **Se descarga e instala** | *Actions → Android (.apk) → Artifacts →* `ALLEMM-SIP-Android` | `android/` |
 | **Web** | iPhone y cualquier navegador | **No se instala**: se sube al servidor y los agentes la abren con su enlace | *Actions → Web → Artifacts →* `ALLEMM-SIP-Web` | `web/` |
 
-Las tres comparten la misma pantalla (`allemmsip/static`); cambia el motor:
-el `.exe` y el APK hablan SIP directo por UDP con PJSIP, la Web usa JsSIP
-sobre WSS con audio WebRTC (un navegador no puede hablar SIP por UDP).
+El `.exe` y el APK comparten pantalla (`allemmsip/static`) y hablan SIP
+directo por UDP con PJSIP. La **Web es un proyecto propio** (`web/app`): su
+pantalla y su motor JsSIP sobre WSS con audio WebRTC (un navegador no puede
+hablar SIP por UDP); no comparte código con las versiones instalables.
 
 ---
 
@@ -212,16 +213,17 @@ cd android && ./gradlew assembleRelease
 # 3. Versión Web — no se instala: se usa desde el navegador
 
 Para quien no puede instalar el `.exe` ni el APK (iPhone, iPad, Mac,
-cualquier navegador). Usa **la misma interfaz** (`allemmsip/static`), pero el
-motor es **JsSIP sobre WSS** (WebSocket seguro) con audio **WebRTC**: un
-navegador no puede hablar SIP por UDP.
+cualquier navegador). Es un proyecto propio en **`web/app`** (pantalla y
+motor), independiente del `.exe` y del APK: **JsSIP sobre WSS** (WebSocket
+seguro) con audio **WebRTC**, porque un navegador no puede hablar SIP por UDP.
 
 | Pieza | Archivo |
 |---|---|
-| Motor web (JsSIP + WebRTC, mismo contrato que `engine.py`) | `web/static/js/web-engine.js` |
-| Instalación como app (service worker, aviso para iPhone) | `web/static/js/pwa.js`, `web/sw.template.js`, `web/static/manifest.webmanifest` |
+| Pantalla de la versión Web | `web/app/index.html`, `web/app/js/`, `web/app/css/` |
+| Motor web (JsSIP + WebRTC, `window.AllemmEngine`) | `web/app/js/web-engine.js` |
+| Acceso directo en iPhone (service worker, aviso) | `web/app/js/pwa.js`, `web/sw.template.js`, `web/app/manifest.webmanifest` |
 | Armar la carpeta publicable | `web/build.py` |
-| Configuración del sitio (conmutador, recolector) | `web/static/js/allemm-config.js` |
+| Configuración del sitio (conmutador, recolector) | `web/app/js/allemm-config.js` |
 | Recolector PHP + MySQL, panel de administración | `web/server/monitor/`, `web/server/admin/` |
 | Pruebas: llamadas (3 navegadores + conmutador WSS de prueba) y monitoreo (PHP + MySQL) | `web/tests/` |
 

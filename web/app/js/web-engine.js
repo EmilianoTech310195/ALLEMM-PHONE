@@ -1,19 +1,13 @@
 /* ========================================
-   ALLEMM SIP - Motor Web (JsSIP + WebSocket + WebRTC)
+   ALLEMM SIP Web - Motor (JsSIP + WebSocket + WebRTC)
    ========================================
-   En la WebApp (iPhone, Android sin APK, cualquier navegador) no hay PJSIP:
-   el navegador no puede hablar SIP por UDP. Aquí el motor es JsSIP sobre
-   WSS (WebSocket seguro) contra el mismo conmutador, y el audio va por WebRTC.
-
-   Este archivo se presenta como window.pywebview.api — la misma forma que el
-   .exe (Python) y el APK (android.js) — y manda los mismos eventos por
-   AllemmBridge.dispatch, así sip.js, settings.js y app.js no cambian.
-
-   Solo se incluye en la compilación web (web/build.py).
+   El navegador no habla SIP por UDP: el motor es JsSIP sobre WSS
+   (WebSocket seguro) contra el conmutador de ALLEMM, y el audio va por
+   WebRTC. Se expone como window.AllemmEngine (cada método devuelve una
+   promesa) y avisa sus eventos por AllemmBridge.dispatch({name, data}).
    ======================================== */
 (function () {
     'use strict';
-    if (window.AllemmAndroid) return;          // APK: manda android.js
 
     var VERSION = '1.0.0';
     var STORE_KEY = 'allemm_web_settings';
@@ -25,7 +19,7 @@
     // js/allemm-config.js, que se edita en el servidor sin recompilar.
     var DEFAULTS = {
         sipServer: '',                  // conmutador: lo define js/allemm-config.js
-        sipPort: 8089,                  // puerto WSS del conmutador (no el UDP del .exe)
+        sipPort: 8089,                  // puerto WSS del conmutador
         wssPath: '/ws',
         transport: 'wss',
         registerExpires: 300,
@@ -140,7 +134,7 @@
         var fire = function () {
             if (window.AllemmBridge) window.AllemmBridge.dispatch({ name: name, data: data || {} });
         };
-        // Igual que el motor nativo: los eventos llegan fuera de la llamada al API.
+        // Los eventos llegan fuera de la llamada al motor (como en un teléfono).
         setTimeout(fire, 0);
     }
 
@@ -488,7 +482,7 @@
         try { ua.stop(); } catch (err) {}
     });
 
-    /* ---------- API (mismo contrato que pywebview / android.js) ---------- */
+    /* ---------- API del motor (window.AllemmEngine) ---------- */
     var api = {
         app_info: function () {
             return {
@@ -540,17 +534,6 @@
                 caller: session ? (function () { try { return session.remote_identity.uri.user; } catch (e) { return ''; } })() : ''
             };
         },
-        get_launch_number: function () {
-            // https://.../?llamar=2295125192  ó  #tel:2295125192
-            var n = '';
-            try {
-                var q = new URLSearchParams(location.search);
-                n = q.get('llamar') || q.get('call') || q.get('tel') || '';
-                if (!n && /^#(tel|callto|sip):/i.test(location.hash)) n = decodeURIComponent(location.hash.slice(1));
-                if (n) history.replaceState(null, '', location.pathname);
-            } catch (e) {}
-            return n;
-        },
         sip_register: function (ext, pass, server) {
             ext = String(ext || '').trim();
             if (!ext || !pass) return { ok: false, cause: 'Authentication Error', error: 'Faltan datos' };
@@ -597,7 +580,7 @@
                 log('ua.call falló:', err);
                 session = null;
                 var mic = micError(err);
-                if (mic && window.UvacAlerts) UvacAlerts.show(mic);
+                if (mic && window.AllemmAlerts) AllemmAlerts.show(mic);
                 return false;
             }
         },
@@ -609,7 +592,7 @@
             } catch (err) {
                 log('answer falló:', err);
                 var mic = micError(err);
-                if (mic && window.UvacAlerts) UvacAlerts.show(mic);
+                if (mic && window.AllemmAlerts) AllemmAlerts.show(mic);
                 return false;
             }
         },
@@ -674,8 +657,7 @@
                 return true;
             } catch (err) { log('DTMF falló:', err); return false; }
         },
-        set_speaker: function () { return false; },
-        open_log_folder: function () {
+        download_log: function () {
             var text = 'ALLEMM SIP Web ' + VERSION + '\n' + navigator.userAgent + '\n' +
                 'Servidor: ' + wssUrl() + '\n\n' + LOG.join('\n') + '\n';
             var blob = new Blob([text], { type: 'text/plain' });
@@ -704,7 +686,7 @@
             (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches);
     }
 
-    // Cada método devuelve una promesa, igual que pywebview.
+    // Cada método devuelve una promesa.
     var wrapped = {};
     Object.keys(api).forEach(function (k) {
         wrapped[k] = function () {
@@ -715,8 +697,7 @@
         };
     });
 
-    window.pywebview = { api: wrapped, platform: 'web' };
-    window.ALLEMM_WEB = true;
+    window.AllemmEngine = wrapped;
 
     document.addEventListener('DOMContentLoaded', function () {
         document.body.classList.add('is-web');
@@ -724,16 +705,16 @@
         if (isStandalone()) document.body.classList.add('is-standalone');
 
         // Copiar al log lo que la interfaz escribe en consola.
-        ['uvacLog', 'uvacWarn', 'uvacError'].forEach(function (fn) {
+        ['allemmLog', 'allemmWarn', 'allemmError'].forEach(function (fn) {
             var orig = window[fn];
             if (typeof orig !== 'function') return;
             window[fn] = function () {
-                log.apply(null, [fn === 'uvacLog' ? '[app]' : fn === 'uvacWarn' ? '[app⚠]' : '[app✖]'].concat([].slice.call(arguments)));
+                log.apply(null, [fn === 'allemmLog' ? '[app]' : fn === 'allemmWarn' ? '[app⚠]' : '[app✖]'].concat([].slice.call(arguments)));
                 return orig.apply(this, arguments);
             };
         });
 
-        window.dispatchEvent(new Event('pywebviewready'));
+        window.dispatchEvent(new Event('allemmengineready'));
     });
 
     log('Motor web listo', VERSION, navigator.userAgent);
