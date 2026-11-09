@@ -430,6 +430,18 @@ const AllemmCallerID = (function () {
             };
         }
 
+        // Prefijo de salida del conmutador (01, 02, 03… + 10 dígitos): el
+        // prefijo solo elige la troncal; el número es mexicano de 10 dígitos.
+        if (clean.length === 12 && /^0[1-9]/.test(clean)) {
+            return {
+                country: 'México · prefijo ' + clean.substring(0, 2),
+                flagSvg: FLAGS['México'],
+                formatted: _format('52' + clean.substring(2), '52'),
+                isInternal: false,
+                isUnknown: false
+            };
+        }
+
         // Optimización: número mexicano con prefijo "1" móvil antiguo (52 + 1 + 10 dígitos = 13)
         // Asterisk a veces normaliza así. Lo tratamos como mexicano y quitamos el 1.
         if (clean.length === 13 && clean.startsWith('521')) {
