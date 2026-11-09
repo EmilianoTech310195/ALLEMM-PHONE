@@ -559,39 +559,68 @@ const AllemmApp = {
     /** Construir el contenido de la ventana flotante y conectar sus botones. */
     _renderFloatingWidget: function(pip) {
         const self = this;
-        // La ventana PiP NO hereda el CSS de la página: inyectamos estilos propios.
+        // La ventana PiP NO hereda el CSS de la página: inyectamos el estilo ALLEMM.
         const style = pip.document.createElement('style');
         style.textContent = [
-            '*{box-sizing:border-box;font-family:system-ui,-apple-system,Arial,sans-serif}',
-            'body{margin:0;background:#0f2547;color:#fff;user-select:none}',
-            '.wrap{padding:12px;display:flex;flex-direction:column;height:100vh}',
-            '.num{font-size:18px;font-weight:700;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}',
-            '.st{font-size:12px;text-align:center;opacity:.8;margin-top:2px}',
-            '.tm{font-size:26px;font-weight:700;text-align:center;margin:8px 0;letter-spacing:1px}',
-            '.kp{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin:4px 0}',
-            '.kp button{padding:8px 0;font-size:16px;border:0;border-radius:8px;background:#1c3b66;color:#fff;cursor:pointer}',
-            '.kp button:active{background:#2a5490}',
-            '.row{display:flex;gap:8px;margin-top:auto}',
-            '.row button{flex:1;padding:12px 0;font-size:13px;border:0;border-radius:10px;cursor:pointer;font-weight:700}',
-            '.mute{background:#2a5490;color:#fff}.mute.on{background:#d97706}',
-            '.hang{background:#dc2626;color:#fff}'
+            '*{box-sizing:border-box;margin:0}',
+            'body{background:radial-gradient(circle at 1px 1px,rgba(255,255,255,.045) 1px,transparent 1.2px) 0 0/16px 16px,#0A0A0C;',
+            'color:#F3F1EC;font-family:"Segoe UI",Inter,system-ui,-apple-system,Arial,sans-serif;user-select:none}',
+            '.mono{font-family:"Cascadia Code",Consolas,"JetBrains Mono",monospace}',
+            '.wrap{padding:12px 12px 14px;display:flex;flex-direction:column;height:100vh}',
+            '.top{display:flex;align-items:center;justify-content:space-between;padding-bottom:9px;border-bottom:1px solid #26262d}',
+            '.brand{display:flex;align-items:center;gap:7px;font-weight:700;letter-spacing:.3em;font-size:10px}',
+            '.brand svg{width:14px;height:16px}',
+            '.dot{width:7px;height:7px;border-radius:50%;background:#3fb37f;box-shadow:0 0 8px #3fb37f}',
+            '.num{margin-top:12px;font-size:17px;font-weight:700;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}',
+            '.ctry{display:flex;align-items:center;justify-content:center;gap:6px;margin-top:3px;font-size:10.5px;color:#9a978f}',
+            '.ctry svg{width:13px;height:13px;border-radius:50%}',
+            '.st{margin-top:6px;text-align:center;font-size:9.5px;letter-spacing:.24em;text-transform:uppercase;color:#C69F5A}',
+            '.tm{font-size:28px;font-weight:700;text-align:center;margin:6px 0 10px;letter-spacing:.06em;color:#C69F5A}',
+            '.kp{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}',
+            '.kp button{height:36px;font-size:16px;border:1px solid #26262d;border-radius:9px;background:#141418;color:#F3F1EC;cursor:pointer}',
+            '.kp button:hover{border-color:#C69F5A}',
+            '.kp button:active{background:rgba(198,159,90,.18)}',
+            '.row{display:flex;gap:8px;margin-top:auto;padding-top:12px}',
+            '.row button{flex:1;display:flex;align-items:center;justify-content:center;gap:6px;height:40px;font-size:12px;',
+            'font-weight:700;letter-spacing:.06em;border-radius:10px;cursor:pointer}',
+            '.row svg{width:15px;height:15px}',
+            '.mute{background:transparent;color:#C69F5A;border:1px solid #C69F5A}',
+            '.mute.on{background:#C69F5A;color:#111}',
+            '.hang{background:#e5534b;color:#fff;border:1px solid #e5534b}',
+            '.hang:hover{background:#c9433c}'
         ].join('');
         pip.document.head.appendChild(style);
+        pip.document.title = 'ALLEMM · Llamada';
 
+        const MIC = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg>';
+        const MIC_OFF = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 3l18 18M9 9v2a3 3 0 0 0 5 2.2M15 9.3V6a3 3 0 0 0-5.7-1.3M5 11a7 7 0 0 0 11.5 5.3M19 11a7 7 0 0 1-.6 2.8M12 18v3"/></svg>';
+        const HANG = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 9c-2.6 0-5 .6-7.2 1.7-.5.3-.8.8-.8 1.4v2.4c0 .7.6 1.2 1.2 1.1l3-.6c.5-.1.9-.6.9-1.1v-1.6c1.9-.6 3.9-.6 5.8 0v1.6c0 .5.4 1 .9 1.1l3 .6c.6.1 1.2-.4 1.2-1.1v-2.4c0-.6-.3-1.1-.8-1.4C17 9.6 14.6 9 12 9z"/></svg>';
         const keys = ['1','2','3','4','5','6','7','8','9','*','0','#'];
         pip.document.body.innerHTML =
             '<div class="wrap">' +
+                '<div class="top"><div class="brand"><svg viewBox="-16 -28 232 254"><path d="M67 190 L14 190 L100 6 L186 190 L133 190" fill="none" stroke="#C69F5A" stroke-width="22"/><circle cx="100" cy="135" r="15" fill="#C69F5A"/></svg>ALLEMM</div><span class="dot"></span></div>' +
                 '<div class="num" id="pNum">--</div>' +
-                '<div class="st" id="pSt"></div>' +
-                '<div class="tm" id="pTm">00:00</div>' +
+                '<div class="ctry" id="pCtry"></div>' +
+                '<div class="st mono" id="pSt"></div>' +
+                '<div class="tm mono" id="pTm">00:00</div>' +
                 '<div class="kp" id="pKp">' +
-                    keys.map(function(d){ return '<button data-k="'+d+'">'+d+'</button>'; }).join('') +
+                    keys.map(function(d){ return '<button class="mono" data-k="'+d+'">'+d+'</button>'; }).join('') +
                 '</div>' +
                 '<div class="row">' +
-                    '<button class="mute" id="pMute">🎤 Silenciar</button>' +
-                    '<button class="hang" id="pHang">📵 Colgar</button>' +
+                    '<button class="mute" id="pMute">' + MIC + 'Silenciar</button>' +
+                    '<button class="hang" id="pHang">' + HANG + 'Colgar</button>' +
                 '</div>' +
             '</div>';
+
+        // País / prefijo del número (bandera pequeña), como en la pantalla principal.
+        try {
+            const info = (typeof AllemmCallerID !== 'undefined' && self.currentCallNumber)
+                ? AllemmCallerID.identify(self.currentCallNumber) : null;
+            if (info && info.country) {
+                pip.document.getElementById('pCtry').innerHTML = (info.flagSvg || '') + '<span></span>';
+                pip.document.getElementById('pCtry').lastChild.textContent = info.country;
+            }
+        } catch (e) {}
 
         const doc = pip.document;
         // Teclado → DTMF
@@ -603,7 +632,7 @@ const AllemmApp = {
         pMute.addEventListener('click', function(){
             const muted = AllemmSIP.toggleMute();
             pMute.classList.toggle('on', muted);
-            pMute.textContent = muted ? '🔇 Activar' : '🎤 Silenciar';
+            pMute.innerHTML = muted ? MIC_OFF + 'Activar' : MIC + 'Silenciar';
             const mainMute = document.getElementById('muteBtn');
             if (mainMute) {
                 mainMute.classList.toggle('active', muted);
