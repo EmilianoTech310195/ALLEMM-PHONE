@@ -756,8 +756,11 @@ const AllemmApp = {
             return;
         }
         const serverInput = document.getElementById('sipServer');
+        if (serverInput && !serverInput.value.trim() && typeof AllemmSettings !== 'undefined') {
+            AllemmSettings.fillLoginServer();          // vacío: usar el conmutador configurado
+        }
         if (serverInput && !serverInput.value.trim()) {
-            this._showLoginStatus('Ingresa el servidor SIP (ej. pbx.midominio.com:5060)', 'error');
+            this._showLoginStatus('Ingresa el servidor SIP (ej. pbxXXXXX.pbxhosting.com.mx:8089)', 'error');
             serverInput.focus();
             return;
         }

@@ -80,6 +80,8 @@
         try { s = JSON.parse(localStorage.getItem(STORE_KEY) || '{}') || {}; } catch (e) { s = {}; }
         var out = {};
         Object.keys(DEFAULTS).forEach(function (k) { out[k] = (k in s) ? s[k] : DEFAULTS[k]; });
+        // Un conmutador vacío nunca es válido: se usa el de js/allemm-config.js.
+        if (!String(out.sipServer || '').trim()) { out.sipServer = DEFAULTS.sipServer; out.sipPort = DEFAULTS.sipPort; }
         return out;
     }
     // Solo se guarda lo que el usuario cambió: si el administrador actualiza

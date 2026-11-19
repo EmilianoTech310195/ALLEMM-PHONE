@@ -107,14 +107,20 @@ const AllemmSettings = {
         if (typeof AllemmApp !== 'undefined') {
             AllemmApp.AUTO_DIAL = s.autoDial !== false;
         }
-        const serverInput = document.getElementById('sipServer');
-        if (serverInput && s.sipServer && !serverInput.value) {
-            serverInput.value = s.sipServer + (s.sipPort ? ':' + s.sipPort : '');
-        }
+        AllemmSettings.fillLoginServer(s);
         document.querySelectorAll('[data-brand="appName"]').forEach(function (el) { el.textContent = s.appName || ''; });
         document.querySelectorAll('[data-brand="footerText"]').forEach(function (el) { el.textContent = s.footerText || ''; });
         document.querySelectorAll('[data-brand="tagline"]').forEach(function (el) { el.textContent = s.tagline || ''; });
         if (s.appName) document.title = s.appName + ' SIP';
+    },
+
+    /** Servidor del inicio de sesión: siempre con el conmutador configurado si está vacío. */
+    fillLoginServer: function (s) {
+        s = s || this.current || {};
+        const serverInput = document.getElementById('sipServer');
+        if (serverInput && s.sipServer && !serverInput.value.trim()) {
+            serverInput.value = s.sipServer + (s.sipPort ? ':' + s.sipPort : '');
+        }
     },
 
     open: function () {
