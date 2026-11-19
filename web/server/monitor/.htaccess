@@ -1,6 +1,8 @@
-# ALLEMM — monitor/: solo collector.php y setup_db.php se abren desde el navegador.
+# ALLEMM — monitor/: TODO cerrado salvo el recolector y el instalador.
+# (Así tampoco se puede leer nada que el hosting cree aquí, como php_errorlog.)
 Options -Indexes
+Require all denied
 
-<FilesMatch "^(db_config|db_config\.sample|db|monitor_data)\.php$|\.(sql|lock)$|^directory\.js$">
-    Require all denied
+<FilesMatch "^(collector|setup_db)\.php$">
+    Require all granted
 </FilesMatch>

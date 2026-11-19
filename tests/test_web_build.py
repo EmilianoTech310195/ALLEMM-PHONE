@@ -103,3 +103,14 @@ def test_every_file_carries_the_build_version(tmp_path):
         assert src.endswith("?v=" + version), src
     engine = (out / "js" / "web-engine.js").read_text(encoding="utf-8")
     assert "__BUILD__" not in engine and version in engine
+
+
+def test_monitor_folder_is_closed_except_collector_and_installer(tmp_path):
+    out = _build(tmp_path)
+    rules = (out / "monitor" / ".htaccess").read_text(encoding="utf-8")
+    assert "Options -Indexes" in rules
+    assert re.search(r"^Require all denied$", rules, re.M)          # todo cerrado por defecto
+    allowed = re.search(r'<FilesMatch "([^"]+)">\s*Require all granted', rules).group(1)
+    assert re.fullmatch(allowed, "collector.php") and re.fullmatch(allowed, "setup_db.php")
+    for name in ("db_config.php", "db.php", "php_errorlog", "monitor_data.php", "schema.sql", "directory.js"):
+        assert not re.fullmatch(allowed, name), name
