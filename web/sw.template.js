@@ -1,4 +1,7 @@
-/* ALLEMM SIP Web - service worker (generado por web/build.py) */
+/* ALLEMM SIP Web - service worker (generado por web/build.py)
+   Siempre pide al servidor la versión más reciente de cada archivo y solo
+   usa la copia guardada si no hay red. Así nunca se mezclan archivos de
+   versiones distintas cuando se actualiza la app en el servidor. */
 'use strict';
 const VERSION = '__VERSION__';
 const CACHE = 'allemmsip-' + VERSION;
@@ -7,7 +10,9 @@ const FILES = __FILES__;
 self.addEventListener('install', (event) => {
     event.waitUntil(
         caches.open(CACHE)
-            .then((c) => c.addAll(FILES.map((f) => new Request(f, { cache: 'reload' }))))
+            // Uno por uno: si falta un archivo en el servidor, los demás igual se guardan
+            // y el service worker nuevo se instala (antes se quedaba el viejo para siempre).
+            .then((c) => Promise.all(FILES.map((f) => c.add(new Request(f, { cache: 'reload' })).catch(() => null))))
             .then(() => self.skipWaiting())
     );
 });
@@ -28,21 +33,19 @@ self.addEventListener('fetch', (event) => {
     const rel = url.pathname.slice(new URL(self.registration.scope).pathname.length);
     if (rel.startsWith('monitor/') || rel.startsWith('admin/')) return;   // recolector y panel: siempre red
 
-    // Configuración del sitio (conmutador, recolector): la del servidor manda.
-    if (rel === 'js/allemm-config.js') {
-        event.respondWith(fetch(req, { cache: 'no-store' }).catch(() => caches.match(req, { ignoreSearch: true })));
-        return;
-    }
-
-    // La página: primero la red (para tomar versiones nuevas), si no hay, la copia.
-    if (req.mode === 'navigate') {
-        event.respondWith(
-            fetch(req).catch(() => caches.match('./index.html', { ignoreSearch: true }))
-        );
-        return;
-    }
-    // Archivos de la app: copia local (versionada) y si falta, red.
+    // Primero el servidor (sin caché HTTP); si no hay red, la copia guardada.
+    // (Una navegación no admite opciones en fetch: se pide tal cual.)
+    const network = req.mode === 'navigate' ? fetch(req) : fetch(req, { cache: 'no-cache' });
     event.respondWith(
-        caches.match(req, { ignoreSearch: true }).then((hit) => hit || fetch(req))
+        network
+            .then((res) => {
+                if (res && res.ok && res.type === 'basic') {
+                    const copy = res.clone();
+                    caches.open(CACHE).then((c) => c.put(req, copy)).catch(() => {});
+                }
+                return res;
+            })
+            .catch(() => caches.match(req, { ignoreSearch: true })
+                .then((hit) => hit || (req.mode === 'navigate' ? caches.match('./index.html', { ignoreSearch: true }) : undefined)))
     );
 });
