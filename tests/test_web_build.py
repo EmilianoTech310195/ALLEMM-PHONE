@@ -18,7 +18,7 @@ def _build(tmp_path):
 def test_index_loads_web_engine_before_the_shared_ui(tmp_path):
     out = _build(tmp_path)
     html = (out / "index.html").read_text(encoding="utf-8")
-    scripts = re.findall(r'<script src="([^"]+)"', html)
+    scripts = [x.split("?")[0] for x in re.findall(r'<script src="([^"]+)"', html)]
     assert "js/android.js" not in scripts
     assert scripts.index("js/lib/jssip.min.js") < scripts.index("js/web-engine.js") < scripts.index("js/sip.js")
     assert scripts[-1] == "js/app.js"
@@ -74,7 +74,7 @@ def test_monitor_and_admin_are_packaged_without_secrets(tmp_path):
 def test_site_config_loads_first_and_has_no_uvac_pbx(tmp_path):
     out = _build(tmp_path)
     html = (out / "index.html").read_text(encoding="utf-8")
-    scripts = re.findall(r'<script src="([^"]+)"', html)
+    scripts = [x.split("?")[0] for x in re.findall(r'<script src="([^"]+)"', html)]
     assert scripts.index("js/allemm-config.js") < scripts.index("js/web-engine.js")
     for f in ("js/allemm-config.js", "js/web-engine.js"):
         assert "pbx18879" not in (out / f).read_text(encoding="utf-8")
@@ -91,3 +91,15 @@ def test_web_is_its_own_project_without_uvac_or_desktop_code(tmp_path):
         assert "pywebview" not in text, f"queda código de escritorio en {rel}"
     app = (out / "js" / "app.js").read_text(encoding="utf-8")
     assert "TRUSTED_REFERRERS: ['allemm.com.mx']" in app
+
+
+def test_every_file_carries_the_build_version(tmp_path):
+    out = _build(tmp_path)
+    version = re.search(r"const VERSION = '(\w+)'", (out / "sw.js").read_text()).group(1)
+    html = (out / "index.html").read_text(encoding="utf-8")
+    for src in re.findall(r'(?:src|href)="((?:js|css|vendor)/[^"]+)"', html):
+        if src == "js/allemm-config.js":
+            continue
+        assert src.endswith("?v=" + version), src
+    engine = (out / "js" / "web-engine.js").read_text(encoding="utf-8")
+    assert "__BUILD__" not in engine and version in engine

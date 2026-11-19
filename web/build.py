@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 import shutil
 import sys
 from pathlib import Path
@@ -50,6 +51,17 @@ def build(out: Path) -> str:
         digest.update(rel.encode())
         digest.update((out / rel).read_bytes())
     version = digest.hexdigest()[:12]
+
+    # Marca de versión: en el motor (se ve en Ajustes y en el log) y en cada
+    # archivo que carga la página (js/app.js?v=…), para que ninguna caché del
+    # hosting o del navegador entregue una versión vieja mezclada con la nueva.
+    engine = out / "js" / "web-engine.js"
+    engine.write_text(engine.read_text(encoding="utf-8").replace("__BUILD__", version), encoding="utf-8")
+    index = out / "index.html"
+    html = re.sub(r'((?:src|href)=")((?:js|css|vendor)/[^"?]+\.(?:js|css))"',
+                  lambda m: m.group(1) + m.group(2) + ("" if m.group(2) == "js/allemm-config.js" else "?v=" + version) + '"',
+                  index.read_text(encoding="utf-8"))
+    index.write_text(html, encoding="utf-8")
 
     precache = ["./"] + [f for f in files if f != "index.html"] + ["index.html"]
     sw = SW_TEMPLATE.read_text(encoding="utf-8")

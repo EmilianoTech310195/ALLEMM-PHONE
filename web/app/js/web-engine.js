@@ -10,6 +10,7 @@
     'use strict';
 
     var VERSION = '1.0.0';
+    var BUILD = '__BUILD__';         // web/build.py pone aquí la versión del paquete
     var STORE_KEY = 'allemm_web_settings';
     var IS_IOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
         (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
@@ -486,7 +487,7 @@
     var api = {
         app_info: function () {
             return {
-                name: 'ALLEMM SIP', version: VERSION, platform: 'web',
+                name: 'ALLEMM SIP', version: VERSION + ' · ' + BUILD, platform: 'web',
                 engineAvailable: !!JsSIPlib,
                 transports: { udp: false, tcp: false, tls: false, wss: true },
                 ios: IS_IOS, mobile: IS_MOBILE,
@@ -658,7 +659,7 @@
             } catch (err) { log('DTMF falló:', err); return false; }
         },
         download_log: function () {
-            var text = 'ALLEMM SIP Web ' + VERSION + '\n' + navigator.userAgent + '\n' +
+            var text = 'ALLEMM SIP Web ' + VERSION + ' (paquete ' + BUILD + ')\n' + navigator.userAgent + '\n' +
                 'Servidor: ' + wssUrl() + '\n\n' + LOG.join('\n') + '\n';
             var blob = new Blob([text], { type: 'text/plain' });
             var a = document.createElement('a');
@@ -717,5 +718,5 @@
         window.dispatchEvent(new Event('allemmengineready'));
     });
 
-    log('Motor web listo', VERSION, navigator.userAgent);
+    log('Motor web listo', VERSION, 'paquete', BUILD, navigator.userAgent);
 })();
